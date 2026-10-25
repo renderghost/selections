@@ -46,7 +46,7 @@ export function setArtwork(img, art, { sizes, loading = 'lazy', priority = false
 
 export function createGrid({ list, template, onOpen, onTag }) {
   const cards = new Map(); // id → { el, rev }
-  let order = [];
+  let order = null; // null until the first render, so the loading skeletons are always replaced
   let firstRender = true;
 
   function fillImage(el, record, { eager, priority }) {
@@ -98,7 +98,7 @@ export function createGrid({ list, template, onOpen, onTag }) {
   function render(records) {
     const elements = records.map(cardFor);
     const ids = records.map((record) => record.id);
-    if (ids.length !== order.length || ids.some((id, i) => id !== order[i])) {
+    if (!order || ids.length !== order.length || ids.some((id, i) => id !== order[i])) {
       const focusedId = document.activeElement?.closest?.('.card')?.dataset.id;
       list.replaceChildren(...elements);
       order = ids;

@@ -27,7 +27,7 @@ const options = { ownerId: '42', countryCode: 'GB', authMode: 'client', logger: 
 
 describe('fetchPublicPlaylists', () => {
   it('asks TIDAL for the owner’s playlists with cover art, in one paginated query', async () => {
-    const client = cannedClient({ pages: [{ data: [] }] });
+    const client = cannedClient({ pages: [{ data: [playlistResource('a')], included: [artworkResource('art-a')] }] });
     await fetchPublicPlaylists({ client, ...options });
     assert.deepEqual(client.requests[0], {
       path: '/playlists',
@@ -71,6 +71,16 @@ describe('fetchPublicPlaylists', () => {
       },
     };
     await assert.rejects(fetchPublicPlaylists({ client, ...options }), /npm run tidal:login/);
+  });
+
+  it('treats an empty list under client credentials as a sign-in problem', async () => {
+    const client = cannedClient({ pages: [{ data: [], links: {} }] });
+    await assert.rejects(fetchPublicPlaylists({ client, ...options }), (error) => error instanceof TidalAuthError && /npm run tidal:login -- --save/.test(error.message));
+  });
+
+  it('accepts an empty list when signed in as the user', async () => {
+    const client = cannedClient({ pages: [{ data: [] }] });
+    assert.deepEqual(await fetchPublicPlaylists({ client, ...options, authMode: 'user' }), []);
   });
 
   it('works end to end against the mock TIDAL API', async () => {

@@ -60,8 +60,8 @@ export function createCatalogue({ load, ttlMs, snapshotPath, logger, reporter, n
     }
     try {
       const data = JSON.parse(raw);
-      if (data?.version !== SNAPSHOT_VERSION || !Array.isArray(data.records) || !data.records.every(isValidRecord)) {
-        logger.info('Ignoring playlist snapshot from an older version');
+      if (data?.version !== SNAPSHOT_VERSION || !Array.isArray(data.records) || !data.records.length || !data.records.every(isValidRecord)) {
+        logger.info('Ignoring playlist snapshot that is empty or from an older version');
         return false;
       }
       snapshot = buildSnapshot(data.records, Number(data.fetchedAt) || 0);

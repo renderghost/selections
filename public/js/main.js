@@ -289,6 +289,7 @@ async function refresh({ boot } = {}) {
     hideNotice();
     if (result.mode !== 'unchanged') saveCache(result);
     if (result.mode !== 'unchanged' || !state.playlists.length) setPlaylists(result.playlists);
+    if (!result.playlists.length) showNotice('There are no playlists to show just yet. Please check back soon.');
     if (cache && result.added.length) {
       showToast(result.added.length === 1 ? 'A new playlist has been added since your last visit.' : `${result.added.length} new playlists have been added since your last visit.`);
     }

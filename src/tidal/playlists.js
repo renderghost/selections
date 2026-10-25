@@ -29,6 +29,14 @@ export async function fetchPublicPlaylists({ client, ownerId, countryCode, authM
     throw error;
   }
 
+  // With client credentials TIDAL answers an owner query with an empty list rather than an error.
+  if (!resources.size && authMode === 'client') {
+    throw new TidalAuthError(
+      `TIDAL returned no playlists for user ${ownerId}. TIDAL only lists a user's playlists to an app signed in as that user: ` +
+        'run `npm run tidal:login -- --save` once (with the app stopped), then restart.',
+    );
+  }
+
   // Artwork TIDAL referenced but did not include: fetch it in batches. Not fatal.
   const missing = [...resources.values()]
     .map((resource) => resource.relationships?.coverArt?.data?.[0]?.id)

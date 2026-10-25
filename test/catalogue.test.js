@@ -27,7 +27,8 @@ describe('catalogueEtag', () => {
 describe('catalogue', () => {
   let dir;
   before(async () => (dir = await mkdtemp(join(tmpdir(), 'selections-'))));
-  after(() => rm(dir, { recursive: true, force: true }));
+  // Background snapshot writes may still be finishing.
+  after(() => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
 
   it('loads on first use and shares one load between concurrent requests', async () => {
     let loads = 0;
@@ -122,7 +123,7 @@ describe('catalogue', () => {
 
   it('ignores corrupt or outdated snapshots', async () => {
     const snapshotPath = join(dir, 'bad.json');
-    for (const content of ['{not json', JSON.stringify({ version: 0, records: [] }), JSON.stringify({ version: 1, records: [{ id: 1 }] })]) {
+    for (const content of ['{not json', JSON.stringify({ version: 0, records: [] }), JSON.stringify({ version: 1, fetchedAt: Date.now(), records: [] }), JSON.stringify({ version: 1, records: [{ id: 1 }] })]) {
       await writeFile(snapshotPath, content);
       const { catalogue } = setup({ load: async () => [record('fresh')], snapshotPath });
       await catalogue.start();
