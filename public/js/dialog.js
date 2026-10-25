@@ -78,6 +78,7 @@ export function createPlaylistDialog({ dialog, onClose }) {
     description: $('.sheet-description'),
     open: $('[data-action="open"]'),
     copy: $('[data-action="copy"]'),
+    copyLabel: $('[data-action="copy"] .button-label'),
     copyStatus: $('.copy-status'),
     close: $('.sheet-close'),
     player: $('.sheet-player'),
@@ -132,8 +133,14 @@ export function createPlaylistDialog({ dialog, onClose }) {
     );
     ui.description.textContent = record.description ?? '';
     ui.open.href = record.url;
-    ui.copy.textContent = 'Copy link';
+    setCopied(false);
     ui.copyStatus.textContent = '';
+  }
+
+  /** Swaps the copy button between its copy and check icons (see .when-idle / .when-copied in app.css). */
+  function setCopied(copied) {
+    ui.copy.toggleAttribute('data-copied', copied);
+    ui.copyLabel.textContent = copied ? 'Copied' : 'Copy link';
   }
 
   async function copyLink() {
@@ -141,10 +148,10 @@ export function createPlaylistDialog({ dialog, onClose }) {
     clearTimeout(copyTimer);
     try {
       await writeClipboard(current.url, dialog);
-      ui.copy.textContent = 'Copied ✓';
+      setCopied(true);
       ui.copyStatus.textContent = 'Link copied to your clipboard.';
       copyTimer = setTimeout(() => {
-        ui.copy.textContent = 'Copy link';
+        setCopied(false);
         ui.copyStatus.textContent = '';
       }, 2500);
     } catch (error) {

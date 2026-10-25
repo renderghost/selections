@@ -1,12 +1,14 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import compression from 'compression';
+import ejs from 'ejs';
 import express from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import { CACHE_ETAG_KEY, CARD_IMAGE_SIZES, srcsetFor } from '../../public/js/constants.js';
 import { AppError, BadRequestError, NotFoundError } from '../errors.js';
 import { mockArtworkHandler } from '../tidal/mock.js';
+import { icon } from './icons.js';
 import { createRateLimiter, parseReports } from './reports.js';
 
 const publicDir = fileURLToPath(new URL('../../public', import.meta.url));
@@ -48,10 +50,17 @@ function sendVersioned(req, res, etag, body) {
   return res.json(body);
 }
 
-export function createApp({ config, catalogue, reporter, logger, assets }) {
-  const app = express();
+/**
+ * Adds the site's middleware and routes to an Express app. The app is passed in
+ * (rather than created here) because Vercel's framework detection only
+ * recognises an entry file that itself imports and creates Express.
+ */
+export function createApp({ config, catalogue, reporter, logger, assets, app = express() }) {
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
+  // Registered explicitly: Express would load EJS by name at runtime, which Vercel's
+  // file tracer can't see, so EJS would be missing from the deployed function.
+  app.engine('ejs', ejs.__express);
   app.set('view engine', 'ejs');
   app.set('views', viewsDir);
 
@@ -213,6 +222,7 @@ export function createApp({ config, catalogue, reporter, logger, assets }) {
       site: config.site,
       preloadArt: first?.art ? { srcset: srcsetFor(first.art), sizes: CARD_IMAGE_SIZES } : null,
       cacheEtagKey: CACHE_ETAG_KEY,
+      icon,
       year: new Date().getFullYear(),
     });
   });
