@@ -53,7 +53,6 @@
 	--radius-m: 0.75rem;
 	--radius-l: 1.25rem;
 	--radius-pill: 999px;
-	--avatar-radius: var(--radius-s); /* Set to 0 for sharp corners. */
 
 	--gutter: clamp(1rem, 4vw, 2.5rem);
 	--gap: clamp(0.75rem, 2vw, 1.5rem);
@@ -160,45 +159,110 @@ main:focus {
 	outline: none;
 }
 
-/* Masthead: black fading into cyan ------------------------------------------ */
+/* Masthead: pure black, a big two-weight wordmark, a hairline dot grid ---------- */
 
 .masthead {
-	background:
-		radial-gradient(70% 140% at 12% 115%, hsl(180 100% 50% / 0.34), transparent 70%),
-		linear-gradient(180deg, var(--black) 0%, hsl(180 100% 50% / 0.1) 100%),
-		var(--black);
-	padding-block: clamp(2rem, 7vw, 4rem) clamp(1.25rem, 4vw, 2.25rem);
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+	padding-block: clamp(2.25rem, 7vw, 5rem) clamp(1.75rem, 4vw, 3.25rem);
+	background: var(--black);
 }
 
-.masthead-inner {
-	display: flex;
-	align-items: center;
-	gap: clamp(1rem, 3vw, 1.75rem);
-}
-
-.avatar {
-	flex: none;
-	width: clamp(4rem, 12vw, 6.5rem);
-	height: auto;
-	aspect-ratio: 1;
-	border-radius: var(--avatar-radius);
-	object-fit: cover;
-	box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px hsl(180 100% 50% / 0.45);
+/* Texture only on the right, fading out behind the text so nothing competes with it.
+   Left off phones, where there is no empty space to put it in. */
+@media (min-width: 48rem) {
+	.masthead::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background: radial-gradient(circle, hsl(0 0% 100% / 0.16) 1px, transparent 1.5px) 0 0 / 24px 24px;
+		-webkit-mask-image: linear-gradient(100deg, transparent 45%, #000 100%);
+		mask-image: linear-gradient(100deg, transparent 45%, #000 100%);
+	}
 }
 
 .site-name {
-	font-size: clamp(2rem, 6vw, 3.5rem);
+	/* Fills the width on phones; capped on large screens. */
+	font-size: clamp(2.25rem, 12.5vw, 7rem);
+	line-height: 0.95;
+	letter-spacing: -0.05em;
+	white-space: nowrap;
+}
+
+@media (min-width: 48rem) {
+	.site-name {
+		font-size: clamp(3rem, 9vw, 7rem);
+	}
+}
+
+.site-name-bold {
 	font-weight: 700;
-	line-height: 1;
-	letter-spacing: -0.035em;
+}
+
+.site-name-light {
+	font-weight: 300;
 }
 
 .tagline {
-	margin-top: 0.625rem;
-	max-width: 40rem;
+	margin-top: clamp(0.75rem, 2vw, 1.125rem);
 	color: var(--text-2);
-	font-size: clamp(0.9375rem, 2vw, 1.125rem);
+	/* Scales with the screen so it stays on one line from about 800px up, wrapping only when it must. */
+	font-size: clamp(1rem, 2vw, 1.375rem);
+	letter-spacing: -0.01em;
+	/* `pretty` only avoids a lone last word; it never narrows the text to even out the lines. */
 	text-wrap: pretty;
+}
+
+.masthead-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.375rem 0.875rem;
+	margin-top: clamp(1rem, 2.5vw, 1.5rem);
+	color: var(--text-2);
+	font-size: 0.75rem;
+	font-weight: 500;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.live {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.625rem;
+	color: var(--text);
+}
+
+.live-dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	background: var(--cyan);
+	animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+	0% {
+		box-shadow: 0 0 0 0 hsl(180 100% 50% / 0.55);
+	}
+	70%,
+	100% {
+		box-shadow: 0 0 0 0.5rem hsl(180 100% 50% / 0);
+	}
+}
+
+/* A divider between the two facts, only where they sit on one line. */
+@media (min-width: 40rem) {
+	.masthead-stats::before {
+		content: '';
+		display: inline-block;
+		width: 1px;
+		height: 0.75em;
+		margin-right: 0.875rem;
+		background: hsl(0 0% 100% / 0.3);
+	}
 }
 
 /* Toolbar: frosted glass, like the player bar -------------------------------- */
@@ -207,23 +271,81 @@ main:focus {
 	position: sticky;
 	top: 0;
 	z-index: 10;
+	container: toolbar / scroll-state;
 	padding-block: 0.75rem;
-	background: hsl(0 0% 8% / 0.92);
+}
+
+/* The frosted-glass bar sits behind the controls. It is only drawn once the toolbar is pinned
+   to the top of the screen (Chrome and Edge); until then the controls float on the black page.
+   Browsers that can't tell when it's pinned always show it, so scrolling content never runs
+   underneath bare controls. */
+.toolbar-surface {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: hsl(0 0% 8% / 0.94);
 	border-block: 1px solid var(--line);
+	transition: opacity var(--slow) ease-out;
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-	.toolbar {
+	.toolbar-surface {
 		background: var(--glass);
 		-webkit-backdrop-filter: var(--glass-blur);
 		backdrop-filter: var(--glass-blur);
 	}
 }
 
+@supports (container-type: scroll-state) {
+	.toolbar-surface {
+		opacity: 0;
+	}
+
+	@container toolbar scroll-state(stuck: top) {
+		.toolbar-surface {
+			opacity: 1;
+		}
+	}
+}
+
+.toolbar-inner {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
 .filters {
+	flex: 1;
+	min-width: 0;
 	display: flex;
 	gap: 0.75rem;
 	align-items: center;
+}
+
+/* Once the bar sticks to the top of the screen (Chrome and Edge), it shows the name, so the
+   identity never scrolls away. Elsewhere it stays hidden. */
+.toolbar-brand {
+	display: none;
+	flex: none;
+	align-items: center;
+	color: var(--text);
+	font-size: 1.125rem;
+	letter-spacing: -0.04em;
+	text-decoration: none;
+	transition: opacity var(--base) ease-out, translate var(--base) var(--ease-out), display var(--base) allow-discrete;
+}
+
+@container toolbar scroll-state(stuck: top) {
+	@media (min-width: 48rem) {
+		.toolbar-brand {
+			display: flex;
+
+			@starting-style {
+				opacity: 0;
+				translate: -0.5rem 0;
+			}
+		}
+	}
 }
 
 .search-field {
