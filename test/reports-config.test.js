@@ -93,6 +93,6 @@ describe('readConfig', () => {
 
   it('validates URLs', () => {
     assert.throws(() => readConfig({ ...valid, SITE_URL: 'not a url' }), /SITE_URL/);
-    assert.equal(readConfig({ ...valid, TIDAL_PROFILE_URL: 'https://tidal.com/@beere/' }).site.profileUrl, 'https://tidal.com/@beere');
+    assert.equal(readConfig({ ...valid, TIDAL_PROFILE_URL: 'https://tidal.com/@renderghost/' }).site.profileUrl, 'https://tidal.com/@renderghost');
   });
 });
