@@ -78,7 +78,7 @@ html {
 	-webkit-text-size-adjust: 100%;
 	text-size-adjust: 100%;
 	scroll-padding-top: 6rem;
-	scrollbar-color: hsl(0 0% 28%) transparent;
+	scrollbar-color: hsl(0 0% 40%) transparent; /* thumb is 3.7:1 against the black track */
 	accent-color: var(--cyan);
 }
 
