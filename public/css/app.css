@@ -211,13 +211,8 @@ main:focus {
 	/* Scales with the screen so it stays on one line from about 800px up, wrapping only when it must. */
 	font-size: clamp(1rem, 2vw, 1.375rem);
 	letter-spacing: -0.01em;
+	/* `pretty` only avoids a lone last word; it never narrows the text to even out the lines. */
 	text-wrap: pretty;
-}
-
-@media (max-width: 47.99rem) {
-	.tagline {
-		text-wrap: balance;
-	}
 }
 
 .masthead-meta {
