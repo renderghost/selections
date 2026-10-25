@@ -634,13 +634,20 @@ main:focus {
 
 .grid {
 	display: grid;
-	/* Never fewer than two columns, so phones still show off the artwork.
+	/* Two columns at the narrowest, so most phones still show off the artwork.
 	   CARD_IMAGE_SIZES in js/constants.js mirrors these widths. */
 	grid-template-columns: repeat(auto-fill, minmax(min(13.5rem, calc((100% - var(--gap)) / 2)), 1fr));
 	gap: clamp(1.5rem, 3vw, 2.5rem) var(--gap);
 	margin: 0;
 	padding: 0;
 	list-style: none;
+}
+
+/* Below 400px two columns get too small to read, so each playlist gets the full width. */
+@media (max-width: 24.99rem) {
+	.grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 .card {
@@ -791,7 +798,8 @@ main:focus {
 	display: none;
 }
 
-@media (max-width: 30rem) {
+/* Only the two-column phone layout (400-480px) is too tight for descriptions. */
+@media (min-width: 25rem) and (max-width: 30rem) {
 	.card-description {
 		display: none;
 	}
