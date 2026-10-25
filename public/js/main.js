@@ -2,6 +2,7 @@ import './error-handlers.js';
 import { ApiError } from './api.js';
 import { createPlaylistDialog } from './dialog.js';
 import { DEFAULT_SORT, applyView, isSort, popularTags, searchText, tagKey } from './filter.js';
+import { formatDate } from './format.js';
 import { createGrid } from './grid.js';
 import { reportError } from './report.js';
 import { loadCache, saveCache } from './store.js';
@@ -24,6 +25,8 @@ const els = {
   notice: $('notice'),
   empty: $('empty'),
   grid: $('grid'),
+  stats: $('masthead-stats'),
+  brand: $('brand'),
 };
 
 const state = {
@@ -162,11 +165,20 @@ function syncControls() {
   els.sort.value = state.view.sort;
 }
 
+/** "Latest added 23 Oct 2026" in the masthead, from the newest playlist. */
+function renderMastheadStats() {
+  const newest = state.playlists.reduce((latest, record) => ((record.createdAt ?? '') > (latest?.createdAt ?? '') ? record : latest), null);
+  const date = newest?.createdAt && formatDate(newest.createdAt);
+  els.stats.hidden = !date;
+  if (date) els.stats.textContent = `Latest added ${date}`;
+}
+
 function setPlaylists(playlists) {
   state.playlists = playlists;
   state.byId = new Map(playlists.map((record) => [record.id, record]));
   state.entries = playlists.map((record) => ({ record, text: searchText(record) }));
   grid.prune(state.byId);
+  renderMastheadStats();
   renderTags();
   renderView();
 }
@@ -321,6 +333,12 @@ els.tags.addEventListener('click', (event) => {
   const chip = event.target.closest('.tag-chip');
   if (!chip) return;
   setView({ tag: chip.getAttribute('aria-pressed') === 'true' ? '' : chip.dataset.tag });
+});
+
+// The compact brand in the sticky bar returns to the top without adding a history entry.
+els.brand.addEventListener('click', (event) => {
+  event.preventDefault();
+  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 });
 
 // Long-lived tabs: look for new playlists when the visitor comes back.
