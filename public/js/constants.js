@@ -6,7 +6,7 @@ export const CACHE_KEY = 'selections:v1';
 export const CACHE_ETAG_KEY = 'selections:v1:etag';
 
 /** Approximate rendered width of a grid card's artwork; mirrors the grid in app.css. */
-export const CARD_IMAGE_SIZES = '(min-width: 80rem) 14rem, (min-width: 40rem) 30vw, 50vw';
+export const CARD_IMAGE_SIZES = '(min-width: 80rem) 14rem, (min-width: 40rem) 30vw, (min-width: 25rem) 50vw, 100vw';
 
 /** Cards in the first rows load eagerly; the rest are lazy-loaded as you scroll. */
 export const EAGER_CARD_COUNT = 6;

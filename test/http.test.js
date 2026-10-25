@@ -129,6 +129,8 @@ describe('HTTP API', () => {
     const html = await (await fetch(`${ctx.base}/`)).text();
     assert.match(html, /rel="preload" as="image" imagesrcset="https:\/\/resources\.tidal\.com\/images\/1\/320x320\.jpg 320w"/);
     assert.match(html, /rel="modulepreload" href="\/static\/dev\/js\/main\.js"/);
+    // The artwork is full width in the single-column phone layout.
+    assert.match(html, /imagesizes="[^"]*\(min-width: 25rem\) 50vw, 100vw"/);
     // Searches and deep links show different first cards, so no preload then.
     assert.doesNotMatch(await (await fetch(`${ctx.base}/?q=rock`)).text(), /as="image"/);
   });
