@@ -53,7 +53,6 @@
 	--radius-m: 0.75rem;
 	--radius-l: 1.25rem;
 	--radius-pill: 999px;
-	--avatar-radius: var(--radius-s); /* Set to 0 for sharp corners. */
 
 	--gutter: clamp(1rem, 4vw, 2.5rem);
 	--gap: clamp(0.75rem, 2vw, 1.5rem);
@@ -184,38 +183,9 @@ main:focus {
 	}
 }
 
-.masthead-inner {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: clamp(1.25rem, 3vw, 1.75rem);
-}
-
-@media (min-width: 48rem) {
-	.masthead-inner {
-		flex-direction: row;
-		align-items: center;
-		gap: 2rem;
-	}
-}
-
-.avatar {
-	flex: none;
-	width: clamp(4.5rem, 12vw, 7rem);
-	height: auto;
-	aspect-ratio: 1;
-	border-radius: var(--avatar-radius);
-	object-fit: cover;
-	box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.16);
-}
-
-.masthead-text {
-	min-width: 0;
-}
-
 .site-name {
-	/* Stacked on phones the wordmark can use the full width; beside the avatar it needs less. */
-	font-size: clamp(2.25rem, 12.5vw, 5rem);
+	/* Fills the width on phones; capped on large screens. */
+	font-size: clamp(2.25rem, 12.5vw, 7rem);
 	line-height: 0.95;
 	letter-spacing: -0.05em;
 	white-space: nowrap;
@@ -223,7 +193,7 @@ main:focus {
 
 @media (min-width: 48rem) {
 	.site-name {
-		font-size: clamp(2.5rem, 7.2vw, 5rem);
+		font-size: clamp(3rem, 9vw, 7rem);
 	}
 }
 
@@ -238,8 +208,8 @@ main:focus {
 .tagline {
 	margin-top: clamp(0.75rem, 2vw, 1.125rem);
 	color: var(--text-2);
-	/* Scales with the screen so it stays on one line from about 1000px up, wrapping only when it must. */
-	font-size: clamp(1rem, 1.7vw, 1.25rem);
+	/* Scales with the screen so it stays on one line from about 800px up, wrapping only when it must. */
+	font-size: clamp(1rem, 2vw, 1.375rem);
 	letter-spacing: -0.01em;
 	text-wrap: pretty;
 }
@@ -308,15 +278,38 @@ main:focus {
 	z-index: 10;
 	container: toolbar / scroll-state;
 	padding-block: 0.75rem;
-	background: hsl(0 0% 8% / 0.92);
+}
+
+/* The frosted-glass bar sits behind the controls. It is only drawn once the toolbar is pinned
+   to the top of the screen (Chrome and Edge); until then the controls float on the black page.
+   Browsers that can't tell when it's pinned always show it, so scrolling content never runs
+   underneath bare controls. */
+.toolbar-surface {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: hsl(0 0% 8% / 0.94);
 	border-block: 1px solid var(--line);
+	transition: opacity var(--slow) ease-out;
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-	.toolbar {
+	.toolbar-surface {
 		background: var(--glass);
 		-webkit-backdrop-filter: var(--glass-blur);
 		backdrop-filter: var(--glass-blur);
+	}
+}
+
+@supports (container-type: scroll-state) {
+	.toolbar-surface {
+		opacity: 0;
+	}
+
+	@container toolbar scroll-state(stuck: top) {
+		.toolbar-surface {
+			opacity: 1;
+		}
 	}
 }
 
@@ -334,25 +327,17 @@ main:focus {
 	align-items: center;
 }
 
-/* Once the bar sticks to the top of the screen (Chrome and Edge), it shows who you are:
-   a small avatar and the name, so the identity never scrolls away. Elsewhere it stays hidden. */
+/* Once the bar sticks to the top of the screen (Chrome and Edge), it shows the name, so the
+   identity never scrolls away. Elsewhere it stays hidden. */
 .toolbar-brand {
 	display: none;
 	flex: none;
 	align-items: center;
-	gap: 0.75rem;
 	color: var(--text);
-	font-weight: 700;
-	letter-spacing: -0.02em;
+	font-size: 1.125rem;
+	letter-spacing: -0.04em;
 	text-decoration: none;
 	transition: opacity var(--base) ease-out, translate var(--base) var(--ease-out), display var(--base) allow-discrete;
-}
-
-.toolbar-avatar {
-	width: 2rem;
-	height: 2rem;
-	border-radius: var(--avatar-radius);
-	object-fit: cover;
 }
 
 @container toolbar scroll-state(stuck: top) {

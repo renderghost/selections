@@ -47,25 +47,20 @@
 	<a class="skip-link" href="#playlists">Skip to playlists</a>
 
 	<header class="masthead" id="top">
-		<div class="container masthead-inner">
-			<img class="avatar" src="<%= asset('media/avatar.jpg') %>" alt="" width="112" height="112">
-			<div class="masthead-text">
-				<h1 class="site-name"><span class="site-name-bold">Sound</span><wbr><span class="site-name-light">Selections</span></h1>
-				<p class="tagline">Weekly curated playlists for every genre and mood, plus deep dives into artists' back catalogues.</p>
-				<p class="masthead-meta">
-					<span class="live"><span class="live-dot" aria-hidden="true"></span>A new playlist every week</span>
-					<span id="masthead-stats" class="masthead-stats" hidden></span>
-				</p>
-			</div>
+		<div class="container">
+			<h1 class="site-name"><span class="site-name-bold">Sound</span><wbr><span class="site-name-light">Selections</span></h1>
+			<p class="tagline">Weekly curated playlists for every genre and mood, plus deep dives into artists' back catalogues.</p>
+			<p class="masthead-meta">
+				<span class="live"><span class="live-dot" aria-hidden="true"></span>A new playlist every week</span>
+				<span id="masthead-stats" class="masthead-stats" hidden></span>
+			</p>
 		</div>
 	</header>
 
 	<div class="toolbar">
+		<div class="toolbar-surface" aria-hidden="true"></div>
 		<search class="container toolbar-inner">
-			<a id="brand" class="toolbar-brand" href="#top">
-				<img class="toolbar-avatar" src="<%= asset('media/avatar.jpg') %>" alt="" width="32" height="32">
-				<span class="toolbar-brand-name">SoundSelections</span>
-			</a>
+			<a id="brand" class="toolbar-brand" href="#top"><span class="site-name-bold">Sound</span><span class="site-name-light">Selections</span></a>
 			<form id="filters" class="filters" action="/" method="get">
 				<label class="visually-hidden" for="search">Search playlists</label>
 				<div class="search-field">
