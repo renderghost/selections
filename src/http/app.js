@@ -7,6 +7,7 @@ import { pinoHttp } from 'pino-http';
 import { CACHE_ETAG_KEY, CARD_IMAGE_SIZES, srcsetFor } from '../../public/js/constants.js';
 import { AppError, BadRequestError, NotFoundError } from '../errors.js';
 import { mockArtworkHandler } from '../tidal/mock.js';
+import { icon } from './icons.js';
 import { createRateLimiter, parseReports } from './reports.js';
 
 const publicDir = fileURLToPath(new URL('../../public', import.meta.url));
@@ -213,6 +214,7 @@ export function createApp({ config, catalogue, reporter, logger, assets }) {
       site: config.site,
       preloadArt: first?.art ? { srcset: srcsetFor(first.art), sizes: CARD_IMAGE_SIZES } : null,
       cacheEtagKey: CACHE_ETAG_KEY,
+      icon,
       year: new Date().getFullYear(),
     });
   });

@@ -77,7 +77,7 @@ How the app runs on Vercel:
 **Images and assets.**
 - **Artwork:** each image is sized to fit its card (`srcset`/`sizes`), lazy-loaded as you scroll, and fades in over its own palette colour. Only the first row loads eagerly.
 - **TIDAL player:** loads only when a playlist is opened, and is removed when it closes.
-- **CSS, JS and fonts:** served from URLs that include a hash of their contents, so browsers cache them for a year and a deploy updates them all at once. No build step is needed. The Outfit font is self-hosted.
+- **CSS, JS and fonts:** served from URLs that include a hash of their contents, so browsers cache them for a year and a deploy updates them all at once. No build step is needed. The DM Sans font is self-hosted, and icons are inlined Lucide SVGs, so no font or icon service is contacted.
 
 ## Errors: handling and reporting
 
@@ -125,4 +125,4 @@ test/                  tests
 
 ## Licence
 
-MIT. The Outfit font is licensed under the SIL Open Font License (`public/fonts/OFL.txt`).
+MIT. The DM Sans font is licensed under the SIL Open Font License (`public/fonts/OFL.txt`). Icons are from [Lucide](https://lucide.dev) (ISC licence).
