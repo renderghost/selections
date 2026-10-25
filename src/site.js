@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import express from 'express';
 import { waitUntil } from '@vercel/functions';
 import { createCatalogue } from './catalogue.js';
 import { loadEnvFile, readConfig } from './config.js';
@@ -15,11 +16,11 @@ const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 /**
  * Builds the whole site: configuration, logging, error reporting, TIDAL and
- * the Express app. Starts loading playlists, but does not listen on a port,
+ * the Express app (created by the caller, see app.js). Starts loading playlists, but does not listen on a port,
  * so the same app runs as a Vercel Function or as a normal server.
  * Throws a ConfigError when settings are missing or invalid.
  */
-export async function createSite() {
+export async function createSite({ app = express() } = {}) {
   loadEnvFile();
   const config = readConfig();
 
@@ -58,7 +59,7 @@ export async function createSite() {
     versioned: config.isProduction,
   });
 
-  const app = createApp({ config, catalogue, reporter, logger, assets });
+  createApp({ app, config, catalogue, reporter, logger, assets });
   await catalogue.start();
   return { app, config, logger, reporter, assets };
 }

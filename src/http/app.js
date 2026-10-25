@@ -48,8 +48,12 @@ function sendVersioned(req, res, etag, body) {
   return res.json(body);
 }
 
-export function createApp({ config, catalogue, reporter, logger, assets }) {
-  const app = express();
+/**
+ * Adds the site's middleware and routes to an Express app. The app is passed in
+ * (rather than created here) because Vercel's framework detection only
+ * recognises an entry file that itself imports and creates Express.
+ */
+export function createApp({ config, catalogue, reporter, logger, assets, app = express() }) {
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
   app.set('view engine', 'ejs');
