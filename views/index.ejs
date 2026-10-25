@@ -1,128 +1,160 @@
-<!DOCTYPE html>
-
-<html lang="en">
-
+<!doctype html>
+<html lang="en-GB" data-release="<%= release %>">
 <head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>SoundSelections — by Beere</title>
+	<meta name="description" content="Weekly curated playlists for every genre and mood, plus deep dives into artists' back catalogues. Listen on TIDAL.">
+	<meta name="theme-color" content="#000034">
+	<meta name="color-scheme" content="dark">
 
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Sound​Selections — by Beere</title>
-
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
-		rel="stylesheet">
-
-	<meta property="og:title" content="SoundSelections — by Beere">
+	<meta property="og:type" content="website">
 	<meta property="og:site_name" content="SoundSelections — by Beere">
-	<meta property="og:url" content="https://soundselections.onrender.com/">
-	<meta property="og:description"
-		content="Welcome to my collection of weekly curated playlists. Whether you're looking to get your dance on, unwind with some mellow vibes, or explore some weirder musical corners, I've got something for you.">
-	<meta property="og:type" content="product">
-	<meta property="og:image" content="">
+	<meta property="og:title" content="SoundSelections — by Beere">
+	<meta property="og:url" content="<%= site.url %>/">
+	<meta property="og:description" content="Welcome to my collection of weekly curated playlists. Whether you're looking to get your dance on, unwind with some mellow vibes, or explore some weirder musical corners, I've got something for you.">
+	<meta property="og:image" content="<%= site.url %>/media/avatar.jpg">
+	<link rel="icon" href="<%= asset('media/avatar.jpg') %>">
 
-	<link rel="stylesheet" href="/css/tokens.css">
-	<link rel="stylesheet" href="/css/global.css">
-	<link rel="stylesheet" href="/css/typography.css">
-	<link rel="stylesheet" href="/css/layout.css">
-	<link rel="stylesheet" href="/css/component.css">
+	<link rel="preconnect" href="https://resources.tidal.com">
+	<link rel="preload" href="<%= asset('fonts/outfit-latin-wght-normal.woff2') %>" as="font" type="font/woff2" crossorigin>
+	<link rel="stylesheet" href="<%= asset('css/app.css') %>">
+	<% if (preloadArt) { %>
+	<link rel="preload" as="image" imagesrcset="<%= preloadArt.srcset %>" imagesizes="<%= preloadArt.sizes %>" fetchpriority="high">
+	<% } %>
+	<% modules.forEach((href) => { %>
+	<link rel="modulepreload" href="<%= href %>">
+	<% }) %>
 
+	<script nonce="<%= nonce %>">
+		// Start fetching playlists before the app's modules have even downloaded.
+		// With a cached copy, only ask whether anything changed (usually an empty 304).
+		(function () {
+			var etag = null;
+			try { etag = localStorage.getItem(<%- JSON.stringify(cacheEtagKey) %>); } catch (e) {}
+			var request = fetch(etag ? '/api/playlists/manifest' : '/api/playlists', {
+				headers: etag ? { 'If-None-Match': '"' + etag + '"' } : {},
+				cache: 'no-store'
+			});
+			request.catch(function () {}); // The app reports failures when it reads this.
+			window.__selectionsBoot = { etag: etag, request: request };
+		})();
+	</script>
+	<script type="module" src="<%= asset('js/main.js') %>"></script>
 </head>
 
-<body class="flex lay--gap lay--column">
+<body>
+	<a class="skip-link" href="#playlists">Skip to playlists</a>
 
-	<nav class="flex lay--justify-center">
-
-		<div class="flex lay--column lay--gap width-control">
-
-			<div class="flex lay--row lay--gap-small lay--align-center">
-				<img class="avatar tooltip" src="/media/avatar.jpg" alt="Avatar"
-					data-tooltip="Welcome! I hope you find your new favourite thing 👋">
-				<h1 class="text-name-site">Sound<wbr>Selections</h1>
+	<header class="masthead">
+		<div class="container masthead-inner">
+			<img class="avatar" src="<%= asset('media/avatar.jpg') %>" alt="" width="64" height="64">
+			<div>
+				<h1 class="site-name">Sound<wbr>Selections</h1>
+				<p class="tagline">Weekly curated playlists for every genre and mood, plus deep dives into artists' back catalogues.</p>
 			</div>
-
-			<div id="nav-search" class="flex">
-				<input type="text" id="search" placeholder="Find your favourite style...">
-			</div>
-
-			<div class="flex lay--row lay--gap-small lay--align-center">
-				<span id="playlist-counter"></span>
-				<a id="reset-button" style="display: none;">Clear Results</a>
-			</div>
-
 		</div>
+	</header>
 
-	</nav>
-
-	<main class="flex lay--justify-center">
-
-		<div class="width-control">
-
-			<div id="loading-message" class="flex">
-				<p class="label secondary">Loading... Sometimes this can take a while - still learning to code!</p>
-			</div>
-
-			<section id="playlists-container" class="grid lay--gap-large-xx">
-				<!-- Playlists will be added via JavaScript -->
-			</section>
-
-		</div>
-
-	</main>
-
-	<footer class="flex lay--justify-center">
-		<div class="flex lay--row lay--gap width-control">
-
-			<div class="flex lay--row lay--gap-small lay--align-center">
-				<a class="button" href="https://open.spotify.com/user/111112791" target="_blank">View on Spotify</a>
-			</div>
-
-			<div class="flex lay--row lay--gap-small lay--align-center">
-				<p>Weekly curated playlists by <a href="https://linktr.ee/barryprendergast" target="_blank">Beere</a>
-					since 2019 &copy;</p>
-			</div>
-
-		</div>
-
-	</footer>
-
-	<div id="overlay-background" class="overlay hidden">
-
-		<div id="overlay" class="overlay-content lay--column">
-
-			<div id="close-overlay" class="close-overlay"><span>&times;</span></div>
-
-			<div class="flex lay--column lay--gap lay--justify-left">
-				<h2 id="overlay-playlist-title" class="primary"></h2>
-
-				<div class="flex lay--row lay--gap-small-x lay--justify-left">
-					<p id="overlay-playlist-tracks" class="label secondary"></p>
-					<p id="overlay-playlist-divider" class="label secondary">&#124;</p>
-					<p id="overlay-playlist-followers" class="label secondary"></p>
-				</div>
-
-				<p id="overlay-playlist-description" class="label mid clamp-2"></p>
-
-				<div class="flex lay--row lay--gap lay--justify-left">
-					<a id="open-web" class="button" data-playlist-id="">Open in Spotify Web</a>
-					<a id="copy-url" class="button">Copy Link</a>
-				</div>
-
-				<div class="overlay-player-wrapper">
-					<iframe id="spotify-player" src="" allowtransparency="true" allowfullscreen
-						allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture;"></iframe>
-				</div>
-
-			</div>
-
-		</div>
-
+	<div class="toolbar">
+		<search class="container toolbar-inner">
+			<form id="filters" class="filters" action="/" method="get">
+				<label class="visually-hidden" for="search">Search playlists</label>
+				<input id="search" class="search-input" type="search" name="q" placeholder="Find your favourite style…" autocomplete="off" spellcheck="false" enterkeyhint="search">
+				<label class="sort">
+					<span class="sort-label">Sort</span>
+					<select id="sort" name="sort">
+						<option value="newest">Newest</option>
+						<option value="updated">Updated</option>
+						<option value="az">A–Z</option>
+					</select>
+				</label>
+			</form>
+		</search>
 	</div>
 
-	<div id="tooltip" class="tooltip-container"></div>
+	<main id="playlists" class="container" tabindex="-1">
+		<div class="results-bar">
+			<p id="result-count" class="result-count">Loading playlists…</p>
+			<button id="clear-filters" class="text-button" type="button" hidden>Clear filters</button>
+		</div>
+		<p id="announcer" class="visually-hidden" role="status" aria-live="polite"></p>
 
-	<script src="/js/app.js"></script>
+		<div id="tags" class="tags" role="group" aria-label="Filter by artist or genre" hidden></div>
 
+		<div id="notice" class="notice" role="alert" hidden>
+			<p class="notice-message"></p>
+			<button class="button notice-action" type="button" hidden></button>
+		</div>
+
+		<div id="empty" class="notice" hidden>
+			<p class="empty-message"></p>
+			<button class="button" type="button" data-action="clear-filters">Clear filters</button>
+		</div>
+
+		<ul id="grid" class="grid" aria-busy="true" aria-label="Playlists">
+			<% for (let i = 0; i < 12; i++) { %><li class="card is-skeleton" aria-hidden="true"><div class="card-art"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></li><% } %>
+		</ul>
+
+		<noscript>
+			<p class="notice">This site needs JavaScript to show the playlists.<% if (site.profileUrl) { %> You can also <a href="<%= site.profileUrl %>">browse them on TIDAL</a>.<% } %></p>
+		</noscript>
+	</main>
+
+	<footer class="site-footer">
+		<div class="container footer-inner">
+			<% if (site.profileUrl) { %>
+			<a class="button" href="<%= site.profileUrl %>" target="_blank" rel="noopener">View on TIDAL</a>
+			<% } %>
+			<p>Weekly curated playlists by <a href="https://linktr.ee/barryprendergast" target="_blank" rel="noopener">Beere</a> since 2019 &copy; <%= year %></p>
+		</div>
+	</footer>
+
+	<template id="card-template">
+		<li class="card">
+			<div class="card-art">
+				<img alt="" width="320" height="320" decoding="async">
+				<span class="badge" hidden>New</span>
+			</div>
+			<h2 class="card-title"><a class="card-link" href=""></a></h2>
+			<p class="card-meta"><button class="tag-chip" type="button" hidden></button><span class="card-stats"></span></p>
+			<p class="card-description"></p>
+		</li>
+	</template>
+
+	<dialog id="playlist-dialog" class="sheet" closedby="any" aria-labelledby="sheet-title">
+		<div class="sheet-layout">
+			<button class="sheet-close" type="button" aria-label="Close">
+				<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+			</button>
+
+			<div class="sheet-art"><img alt="" width="640" height="640" decoding="async"></div>
+
+			<div class="sheet-head">
+				<p class="sheet-tag"></p>
+				<h2 id="sheet-title" class="sheet-title"></h2>
+				<p class="sheet-stats"></p>
+			</div>
+
+			<p class="sheet-description"></p>
+
+			<div class="sheet-body">
+				<div class="sheet-actions">
+					<a class="button button-primary" data-action="open" href="" target="_blank" rel="noopener">
+						Open in TIDAL<span class="visually-hidden"> (opens in a new tab)</span>
+						<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M18 14v5H5V6h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</a>
+					<button class="button" data-action="copy" type="button">Copy link</button>
+				</div>
+				<p class="copy-status" role="status" aria-live="polite"></p>
+			</div>
+
+			<div class="sheet-player" data-state="idle">
+				<p class="player-message" hidden>The player is taking a while to load. You can still open the playlist in TIDAL.</p>
+			</div>
+		</div>
+	</dialog>
+
+	<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
-
 </html>
