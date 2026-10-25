@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import compression from 'compression';
+import ejs from 'ejs';
 import express from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
@@ -57,6 +58,9 @@ function sendVersioned(req, res, etag, body) {
 export function createApp({ config, catalogue, reporter, logger, assets, app = express() }) {
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
+  // Registered explicitly: Express would load EJS by name at runtime, which Vercel's
+  // file tracer can't see, so EJS would be missing from the deployed function.
+  app.engine('ejs', ejs.__express);
   app.set('view engine', 'ejs');
   app.set('views', viewsDir);
 
