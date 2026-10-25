@@ -1,5 +1,5 @@
 import { TidalAuthError, TidalError } from '../errors.js';
-import { parseRetryAfter, withRetry } from './retry.js';
+import { parseRetryAfter, sleep, withRetry } from './retry.js';
 
 const JSON_API = 'application/vnd.api+json';
 
@@ -25,7 +25,7 @@ export function nextCursor(doc) {
  * Retries network errors, timeouts, 429s and 5xx responses; refreshes the
  * token once on a 401; raises typed errors with TIDAL's own error details.
  */
-export function createTidalClient({ baseUrl, tokens, fetch = globalThis.fetch, logger, timeoutMs = 10_000, retryOptions }) {
+export function createTidalClient({ baseUrl, tokens, fetch = globalThis.fetch, logger, timeoutMs = 10_000, pageDelayMs = 0, retryOptions }) {
   async function attempt(url) {
     const token = await tokens.getToken();
     let res;
@@ -91,8 +91,9 @@ export function createTidalClient({ baseUrl, tokens, fetch = globalThis.fetch, l
       },
       {
         ...retryOptions,
+        // One line per retry: these are expected (e.g. rate limits) and recovered from.
         onRetry: ({ error, attempt: n, delay }) =>
-          logger?.warn({ err: error, attempt: n, delayMs: Math.round(delay) }, 'Retrying TIDAL request'),
+          logger?.warn({ upstreamStatus: error.upstreamStatus, attempt: n, delayMs: Math.round(delay), path }, `Retrying TIDAL request: ${error.message}`),
       },
     );
   }
@@ -108,6 +109,8 @@ export function createTidalClient({ baseUrl, tokens, fetch = globalThis.fetch, l
       if (!cursor) return;
       if (seen.has(cursor)) throw new TidalError('TIDAL returned the same page cursor twice', { url: buildUrl(baseUrl, path, query) });
       seen.add(cursor);
+      // A short pause between pages keeps us under TIDAL's rate limit.
+      if (pageDelayMs) await sleep(pageDelayMs);
     }
     logger?.warn({ path, maxPages }, 'Stopped paging TIDAL results at the page limit; some playlists may be missing');
   }

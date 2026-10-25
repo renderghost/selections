@@ -49,7 +49,7 @@ export async function main() {
   if (tidal.mock) logger.warn('TIDAL_MOCK is on: serving generated demo playlists, not your TIDAL account');
 
   const tokens = createTokenProvider({ ...tidal, fetch: fetchImpl, logger });
-  const client = createTidalClient({ baseUrl: tidal.apiBaseUrl, tokens, fetch: fetchImpl, logger });
+  const client = createTidalClient({ baseUrl: tidal.apiBaseUrl, tokens, fetch: fetchImpl, logger, pageDelayMs: tidal.mock ? 0 : 400 });
   const ownerId = tidal.userId || 'me';
   logger.info({ authMode: tokens.mode, ownerId }, 'TIDAL configured');
 

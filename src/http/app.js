@@ -69,7 +69,7 @@ export function createApp({ config, catalogue, reporter, logger, assets }) {
       logger,
       genReqId: (req) => req.id,
       quietReqLogger: true,
-      autoLogging: { ignore: (req) => req.url === '/healthz' || req.url.startsWith('/static/') || req.url.startsWith('/__mock/') },
+      autoLogging: { ignore: (req) => req.url === '/healthz' || req.url.startsWith('/static/') || req.url.startsWith('/__mock/') || req.url.startsWith('/.well-known/') },
       customLogLevel: (req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
       serializers: {
         req: (req) => ({ method: req.method, url: req.url }),
