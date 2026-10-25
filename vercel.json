@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/static/:version/:path*", "destination": "/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/static/:path*",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/media/:path*",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    }
+  ],
+  "functions": {
+    "app.js": {
+      "includeFiles": "{views,public}/**",
+      "maxDuration": 60
+    }
+  }
+}

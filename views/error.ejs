@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title><%= status === 404 ? 'Page not found' : 'Something went wrong' %> — SoundSelections</title>
+	<link rel="stylesheet" href="<%= asset('css/app.css') %>">
+</head>
+<body>
+	<main class="container error-page">
+		<h1 class="site-name"><%= status === 404 ? 'Page not found' : 'Something went wrong' %></h1>
+		<p><%= message %></p>
+		<p><a class="button" href="/">Browse the playlists</a></p>
+		<p class="error-reference">Reference: <code><%= requestId %></code></p>
+	</main>
+</body>
+</html>
