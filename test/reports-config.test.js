@@ -74,6 +74,23 @@ describe('readConfig', () => {
     assert.equal(readConfig({ TIDAL_MOCK: '1' }).tidal.mock, true);
   });
 
+  it('adapts to Vercel: writable temp dir, site URL, release and environment', () => {
+    const config = readConfig({
+      ...valid,
+      VERCEL: '1',
+      VERCEL_ENV: 'preview',
+      VERCEL_PROJECT_PRODUCTION_URL: 'selections.vercel.app',
+      VERCEL_GIT_COMMIT_SHA: 'abc123',
+    });
+    assert.equal(config.onVercel, true);
+    assert.equal(config.env, 'preview');
+    assert.match(config.catalogue.snapshotPath, /selections[\\/]playlists\.json$/);
+    assert.doesNotMatch(config.catalogue.snapshotPath, /^\.cache/);
+    assert.equal(config.site.url, 'https://selections.vercel.app');
+    assert.equal(config.sentry.release, 'abc123');
+    assert.equal(readConfig({ ...valid, VERCEL: '1', SITE_URL: 'https://example.com' }).site.url, 'https://example.com');
+  });
+
   it('validates URLs', () => {
     assert.throws(() => readConfig({ ...valid, SITE_URL: 'not a url' }), /SITE_URL/);
     assert.equal(readConfig({ ...valid, TIDAL_PROFILE_URL: 'https://tidal.com/@beere/' }).site.profileUrl, 'https://tidal.com/@beere');

@@ -39,26 +39,35 @@ TIDAL has said its playlist endpoints may require a signed-in user, even for pub
 
 1. In the TIDAL dashboard, add `http://localhost:3000/callback` as a **Redirect URI** for your app, and enable the `user.read` and `playlists.read` scopes.
 2. Stop the app, then run `npm run tidal:login -- --save` and sign in with the link it prints.
-3. It saves `TIDAL_REFRESH_TOKEN` (and your `TIDAL_USER_ID`) to `.env`. Add the same values to your host's environment settings.
+3. It saves `TIDAL_REFRESH_TOKEN` (and your `TIDAL_USER_ID`) to `.env`. Add the same values to your Vercel project's environment variables.
 
 The refresh token grants read access to your account: keep it secret. Only **public** playlists are ever shown, whichever way the app signs in.
 
 **Finding your user ID:** `npm run tidal:login` prints it.
 
-## Deploying (Render)
+## Deploying (Vercel)
 
-| Setting | Value |
-| --- | --- |
-| Build command | `npm ci` |
-| Start command | `npm start` (or `node app.js`) |
-| Health check path | `/healthz` |
-| Environment | `NODE_ENV=production`, plus the `TIDAL_…`, `SITE_URL` and optional `SENTRY_DSN` values from `.env.example` |
+1. In Vercel, **Add New → Project** and import this GitHub repository. Vercel detects an Express app (`app.js`). There is no build step, and the settings in `vercel.json` need no changes.
+2. Under **Settings → Environment Variables**, add for Production (and Preview, if you want working preview deployments):
+   - `TIDAL_CLIENT_ID`, `TIDAL_CLIENT_SECRET`, `TIDAL_USER_ID`, `TIDAL_REFRESH_TOKEN`
+   - `TIDAL_PROFILE_URL` (optional) and `SENTRY_DSN` (optional)
+   - `SITE_URL` only if you use a custom domain; otherwise the project's production URL is used.
+3. Deploy. Every pull request gets its own preview deployment.
+4. Check `https://<your-site>/healthz`: it should report `"status":"ok"` and a playlist count.
 
-Remove the old Spotify `CLIENT_ID`/`CLIENT_SECRET` variables. If they are still there and the TIDAL ones are missing, the app stops at start-up and says so. The Node version comes from `.nvmrc`.
+How the app runs on Vercel:
+
+- **One function, CDN-served files:** `app.js` is a single Vercel Function. Everything in `public/` is served directly by Vercel's CDN; `vercel.json` maps the versioned `/static/<hash>/…` URLs onto those files and marks them cacheable for a year.
+- **Playlist data is cached on the CDN:** API responses carry a `Vercel-CDN-Cache-Control` header, so the CDN answers repeat requests and refreshes in the background. Visitors only wait for TIDAL (about 10 seconds for ~340 playlists) on the first request after a deploy, or when the CDN has no copy at all. Change `CDN_CACHE_SECONDS` (default 600) to tune this.
+- **Disk:** each function instance keeps its saved copy in the temp directory, the only writable place on Vercel.
+- **Background work:** refreshes and Sentry reports run through `waitUntil`, so they finish after the response is sent.
+- **Preview toolbar:** on preview deployments, Vercel's toolbar may be blocked by the site's Content Security Policy and show up as CSP reports in the logs. This is harmless; the toolbar can be turned off in the project settings.
+
+`npm start` still runs a normal long-lived server for any other host.
 
 ## How it stays fast
 
-**On the server.** All playlists and their artwork come from TIDAL in a handful of paginated requests. The old app made one extra request for every playlist. The result is kept in memory for `CACHE_DURATION` (10 minutes by default) and saved to disk, so a restart serves instantly. After that, the next visit triggers a background refresh, and visitors never wait for it. If TIDAL is down, the last good copy keeps being served while the server retries with back-off.
+**On the server.** All playlists and their artwork come from TIDAL in a handful of paginated requests. The old app made one extra request for every playlist. The result is kept in memory for `CACHE_DURATION` (10 minutes by default) and saved to disk, so a restart serves instantly. After that, the next visit triggers a background refresh, and visitors never wait for it. On Vercel, the CDN also caches the playlist data (see *Deploying*). If TIDAL is down, the last good copy keeps being served while the server retries with back-off.
 
 **In the browser.**
 - **First visit:** one request for everything, roughly 10–20 KB compressed for 150 playlists. A tiny script in `<head>` starts it before the app's code has even downloaded, and the newest playlist's artwork is preloaded.
@@ -97,8 +106,10 @@ npm run check        # syntax-check every JS file, including browser code
 CI runs `check` and `test` on every pull request (`.github/workflows/ci.yml`).
 
 ```
-app.js                 entry point
+app.js                 entry point: exported as the Vercel Function, or listens locally
+vercel.json            Vercel rewrites, cache headers and function settings
 src/
+  site.js              builds the app; serve() runs it as a normal server
   config.js            settings from the environment, validated at start-up
   catalogue.js         server copy of the playlists: refresh, back-off, disk snapshot
   reporting.js         one place for errors: logs + optional Sentry

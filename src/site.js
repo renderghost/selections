@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { waitUntil } from '@vercel/functions';
 import { createCatalogue } from './catalogue.js';
 import { loadEnvFile, readConfig } from './config.js';
 import { createAssets } from './http/assets.js';
@@ -12,16 +13,18 @@ import { fetchPublicPlaylists } from './tidal/playlists.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
-export async function main() {
+/**
+ * Builds the whole site: configuration, logging, error reporting, TIDAL and
+ * the Express app. Starts loading playlists, but does not listen on a port,
+ * so the same app runs as a Vercel Function or as a normal server.
+ * Throws a ConfigError when settings are missing or invalid.
+ */
+export async function createSite() {
   loadEnvFile();
+  const config = readConfig();
 
-  let config;
-  try {
-    config = readConfig();
-  } catch (error) {
-    console.error(`\n${error.message}\n`);
-    process.exit(1);
-  }
+  // Keeps background work (refreshes, error reports) alive after a response on Vercel; a no-op elsewhere.
+  const background = (promise) => waitUntil(promise);
 
   const logger = createLogger({ level: config.logLevel, pretty: !config.isProduction });
   const reporter = await createReporter({
@@ -29,8 +32,42 @@ export async function main() {
     dsn: config.sentry.dsn,
     release: config.sentry.release,
     environment: config.env,
+    background,
   });
 
+  const { tidal } = config;
+  const fetchImpl = tidal.mock ? createMockFetch() : globalThis.fetch;
+  if (tidal.mock) logger.warn('TIDAL_MOCK is on: serving generated demo playlists, not your TIDAL account');
+
+  const tokens = createTokenProvider({ ...tidal, fetch: fetchImpl, logger });
+  const client = createTidalClient({ baseUrl: tidal.apiBaseUrl, tokens, fetch: fetchImpl, logger, pageDelayMs: tidal.mock ? 0 : 400 });
+  const ownerId = tidal.userId || 'me';
+  logger.info({ authMode: tokens.mode, ownerId, onVercel: config.onVercel }, 'TIDAL configured');
+
+  const catalogue = createCatalogue({
+    load: () => fetchPublicPlaylists({ client, ownerId, countryCode: tidal.countryCode, authMode: tokens.mode, logger }),
+    ttlMs: config.catalogue.ttlMs,
+    snapshotPath: tidal.mock ? null : config.catalogue.snapshotPath,
+    logger,
+    reporter,
+    background,
+  });
+
+  const assets = await createAssets({
+    publicDir: fileURLToPath(new URL('../public', import.meta.url)),
+    versioned: config.isProduction,
+  });
+
+  const app = createApp({ config, catalogue, reporter, logger, assets });
+  await catalogue.start();
+  return { app, config, logger, reporter, assets };
+}
+
+/**
+ * Runs the site as a long-lived server (local development, or any non-Vercel host):
+ * listens on PORT, exits after reporting an unexpected crash, and shuts down gracefully.
+ */
+export function serve({ app, config, logger, reporter, assets }) {
   // Last line of defence: record the crash, then exit and let the host restart us
   // (continuing after an unknown failure risks serving from a corrupt state).
   let crashing = false;
@@ -44,29 +81,6 @@ export async function main() {
   process.on('uncaughtException', (error) => crash(error, 'uncaughtException'));
   process.on('unhandledRejection', (reason) => crash(reason instanceof Error ? reason : new Error(String(reason)), 'unhandledRejection'));
 
-  const { tidal } = config;
-  const fetchImpl = tidal.mock ? createMockFetch() : globalThis.fetch;
-  if (tidal.mock) logger.warn('TIDAL_MOCK is on: serving generated demo playlists, not your TIDAL account');
-
-  const tokens = createTokenProvider({ ...tidal, fetch: fetchImpl, logger });
-  const client = createTidalClient({ baseUrl: tidal.apiBaseUrl, tokens, fetch: fetchImpl, logger, pageDelayMs: tidal.mock ? 0 : 400 });
-  const ownerId = tidal.userId || 'me';
-  logger.info({ authMode: tokens.mode, ownerId }, 'TIDAL configured');
-
-  const catalogue = createCatalogue({
-    load: () => fetchPublicPlaylists({ client, ownerId, countryCode: tidal.countryCode, authMode: tokens.mode, logger }),
-    ttlMs: config.catalogue.ttlMs,
-    snapshotPath: tidal.mock ? null : config.catalogue.snapshotPath,
-    logger,
-    reporter,
-  });
-
-  const assets = await createAssets({
-    publicDir: fileURLToPath(new URL('../public', import.meta.url)),
-    versioned: config.isProduction,
-  });
-
-  const app = createApp({ config, catalogue, reporter, logger, assets });
   const server = app.listen(config.port, () => {
     logger.info({ port: config.port, assetVersion: assets.version, env: config.env }, `Listening on http://localhost:${config.port}`);
   });
@@ -74,8 +88,6 @@ export async function main() {
   // Outlive load-balancer idle connections so they are never cut mid-request.
   server.keepAliveTimeout = 65_000;
   server.headersTimeout = 66_000;
-
-  await catalogue.start();
 
   const shutdown = (signal) => {
     logger.info({ signal }, 'Shutting down');

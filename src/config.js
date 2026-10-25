@@ -1,4 +1,6 @@
 import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ConfigError } from './errors.js';
 
 const MINUTE = 60_000;
@@ -59,10 +61,15 @@ export function readConfig(env = process.env) {
     }
   }
 
+  // Vercel sets VERCEL=1 at build and run time, plus the VERCEL_* values used below.
+  const onVercel = Boolean(env.VERCEL);
+  const vercelUrl = env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : null;
+
   let config;
   try {
     config = {
-      env: env.NODE_ENV || 'development',
+      env: env.VERCEL_ENV || env.NODE_ENV || 'development',
+      onVercel,
       isProduction: env.NODE_ENV === 'production',
       port: toInt(env.PORT, 3000, 'PORT'),
       logLevel: env.LOG_LEVEL || (env.NODE_ENV === 'test' ? 'silent' : 'info'),
@@ -71,15 +78,18 @@ export function readConfig(env = process.env) {
       catalogue: {
         // CACHE_DURATION keeps the name used by the previous version of the app.
         ttlMs: Math.max(toInt(env.CACHE_DURATION, 10 * MINUTE, 'CACHE_DURATION'), 30_000),
-        snapshotPath: env.SNAPSHOT_PATH || '.cache/playlists.json',
+        // Only the temp directory is writable on Vercel.
+        snapshotPath: env.SNAPSHOT_PATH || (onVercel ? join(tmpdir(), 'selections', 'playlists.json') : '.cache/playlists.json'),
+        // How long Vercel's CDN may serve API responses before asking the function again.
+        cdnMaxAgeSeconds: toInt(env.CDN_CACHE_SECONDS, 600, 'CDN_CACHE_SECONDS'),
       },
       site: {
-        url: toUrl(env.SITE_URL, 'SITE_URL') || 'https://soundselections.onrender.com',
+        url: toUrl(env.SITE_URL, 'SITE_URL') || vercelUrl || 'http://localhost:3000',
         profileUrl: toUrl(env.TIDAL_PROFILE_URL, 'TIDAL_PROFILE_URL'),
       },
       sentry: {
         dsn: env.SENTRY_DSN?.trim() || '',
-        release: env.RENDER_GIT_COMMIT || env.SOURCE_VERSION || undefined,
+        release: env.VERCEL_GIT_COMMIT_SHA || env.SOURCE_VERSION || undefined,
       },
     };
   } catch (error) {

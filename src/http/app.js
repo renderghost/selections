@@ -146,12 +146,23 @@ export function createApp({ config, catalogue, reporter, logger, assets }) {
     next();
   });
 
+  // On Vercel, let the CDN answer repeat requests for playlist data, refreshing
+  // in the background, so visitors almost never wait for TIDAL. Browsers still
+  // revalidate every time (Cache-Control: no-cache); only Vercel reads this header.
+  const { cdnMaxAgeSeconds } = config.catalogue;
+  const cdnCache = (res) => {
+    if (config.onVercel && cdnMaxAgeSeconds > 0) {
+      res.set('Vercel-CDN-Cache-Control', `max-age=${cdnMaxAgeSeconds}, stale-while-revalidate=86400`);
+    }
+  };
+
   // Ids and revisions of every playlist. Browsers compare it with their cache
   // to fetch only what is new or changed; usually it is a bodiless 304.
   api.get(
     '/playlists/manifest',
     asyncRoute(async (req, res) => {
       const snapshot = await catalogue.get();
+      cdnCache(res);
       sendVersioned(req, res, snapshot.etag, { etag: snapshot.etag, count: snapshot.records.length, items: snapshot.manifest });
     }),
   );
@@ -162,6 +173,7 @@ export function createApp({ config, catalogue, reporter, logger, assets }) {
     asyncRoute(async (req, res) => {
       const ids = parseIds(req.query.ids);
       const snapshot = await catalogue.get();
+      cdnCache(res);
       if (!ids) return sendVersioned(req, res, snapshot.etag, { etag: snapshot.etag, playlists: snapshot.records });
       const playlists = ids.map((id) => snapshot.byId.get(id)).filter(Boolean);
       const missing = ids.filter((id) => !snapshot.byId.has(id));

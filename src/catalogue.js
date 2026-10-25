@@ -34,7 +34,11 @@ const isValidRecord = (record) => typeof record?.id === 'string' && typeof recor
  *   a TIDAL outage doesn't take the site down.
  * - Backs off exponentially while TIDAL is failing.
  */
-export function createCatalogue({ load, ttlMs, snapshotPath, logger, reporter, now = Date.now, minRetryMs = 30_000 }) {
+/**
+ * `background(promise)` keeps work going after a response has been sent. On
+ * Vercel that is `waitUntil`, without which a function may be frozen mid-refresh.
+ */
+export function createCatalogue({ load, ttlMs, snapshotPath, logger, reporter, now = Date.now, minRetryMs = 30_000, background = () => {} }) {
   let snapshot = null;
   let refreshing = null;
   let failures = 0;
@@ -87,7 +91,7 @@ export function createCatalogue({ load, ttlMs, snapshotPath, logger, reporter, n
         lastError = null;
         nextAttemptAt = 0;
         logger.info({ count: records.length, etag: snapshot.etag, changed, ms: now() - startedAt }, 'Playlist catalogue refreshed');
-        persist(snapshot).catch((err) => logger.warn({ err }, 'Could not save playlist snapshot'));
+        await persist(snapshot).catch((err) => logger.warn({ err }, 'Could not save playlist snapshot'));
         return snapshot;
       } catch (error) {
         failures++;
@@ -119,13 +123,13 @@ export function createCatalogue({ load, ttlMs, snapshotPath, logger, reporter, n
     /** Restores the disk snapshot and starts fetching fresh data without waiting for it. */
     async start() {
       await restore();
-      if (isStale()) refresh().catch(() => {});
+      if (isStale()) background(refresh().catch(() => {}));
     },
 
     /** The current snapshot. Only waits for TIDAL when there is nothing to serve yet. */
     async get() {
       if (snapshot) {
-        if (isStale() && !refreshing && now() >= nextAttemptAt) refresh().catch(() => {});
+        if (isStale() && !refreshing && now() >= nextAttemptAt) background(refresh().catch(() => {}));
         return snapshot;
       }
       if (!refreshing && now() < nextAttemptAt) throw unavailable(lastError);

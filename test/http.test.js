@@ -22,8 +22,8 @@ const snapshot = {
   fetchedAt: Date.now(),
 };
 
-async function startServer({ catalogue, production = false } = {}) {
-  const config = readConfig({ TIDAL_MOCK: '1', NODE_ENV: production ? 'production' : 'test' });
+async function startServer({ catalogue, production = false, vercel = false } = {}) {
+  const config = readConfig({ TIDAL_MOCK: '1', NODE_ENV: production ? 'production' : 'test', ...(vercel && { VERCEL: '1' }) });
   const assets = await createAssets({ publicDir: fileURLToPath(new URL('../public', import.meta.url)), versioned: production });
   const reporter = fakeReporter();
   const app = createApp({ config, catalogue, reporter, logger: silentLogger, assets });
@@ -47,6 +47,7 @@ describe('HTTP API', () => {
 
   it('serves the manifest with an ETag, and 304 when unchanged', async () => {
     const res = await fetch(`${ctx.base}/api/playlists/manifest`);
+    assert.equal(res.headers.get('vercel-cdn-cache-control'), null); // Only on Vercel.
     assert.equal(res.status, 200);
     assert.equal(res.headers.get('etag'), '"etag123"');
     assert.equal(res.headers.get('cache-control'), 'no-cache');
@@ -193,6 +194,23 @@ describe('static assets in production', () => {
     assert.equal(old.headers.get('cache-control'), 'public, max-age=0');
   });
 
+});
+
+describe('on Vercel', () => {
+  let ctx;
+  before(async () => (ctx = await startServer({ catalogue: healthyCatalogue, vercel: true })));
+  after(() => ctx.server.close());
+
+  it('lets the CDN cache playlist data, while browsers still revalidate', async () => {
+    const res = await fetch(`${ctx.base}/api/playlists/manifest`);
+    assert.equal(res.headers.get('vercel-cdn-cache-control'), 'max-age=600, stale-while-revalidate=86400');
+    assert.equal(res.headers.get('cache-control'), 'no-cache');
+  });
+
+  it('never lets the CDN cache errors or the page', async () => {
+    assert.equal((await fetch(`${ctx.base}/api/playlists?ids=%3Cbad%3E`)).headers.get('vercel-cdn-cache-control'), null);
+    assert.equal((await fetch(`${ctx.base}/`)).headers.get('vercel-cdn-cache-control'), null);
+  });
 });
 
 describe('unexpected errors', () => {

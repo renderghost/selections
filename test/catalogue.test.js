@@ -80,6 +80,18 @@ describe('catalogue', () => {
     assert.equal(loads, 3);
   });
 
+  it('hands background refreshes to the host, so serverless functions finish them', async () => {
+    const handed = [];
+    let now = 0;
+    const catalogue = createCatalogue({ load: async () => [record('a')], ttlMs: 1000, logger: silentLogger, reporter: fakeReporter(), now: () => now, background: (p) => handed.push(p) });
+    await catalogue.get();
+    assert.equal(handed.length, 0); // The first load is awaited by the request itself.
+    now = 1001;
+    await catalogue.get();
+    assert.equal(handed.length, 1);
+    await handed[0];
+  });
+
   it('reports credential problems as errors even while serving stale data', async () => {
     let fail = false;
     const { catalogue, advance, reporter } = setup({

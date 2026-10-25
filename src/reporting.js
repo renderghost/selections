@@ -1,6 +1,6 @@
 import { serialiseError } from './errors.js';
 
-// Sentry's own process handlers would duplicate ours (see server.js).
+// Sentry's own process handlers would duplicate ours (see serve() in site.js).
 const SKIPPED_SENTRY_INTEGRATIONS = new Set(['OnUncaughtException', 'OnUnhandledRejection']);
 
 /**
@@ -8,7 +8,10 @@ const SKIPPED_SENTRY_INTEGRATIONS = new Set(['OnUncaughtException', 'OnUnhandled
  * structured log line; also forwards to Sentry when SENTRY_DSN is set. Sentry
  * is loaded lazily, so it costs nothing when unused.
  */
-export async function createReporter({ logger, dsn, release, environment }) {
+export async function createReporter({ logger, dsn, release, environment, background = () => {} }) {
+  // Serverless functions can be frozen once they respond: send reports before that.
+  const sendSoon = () => sentry && background(sentry.flush(2000).catch(() => false));
+
   let sentry = null;
 
   if (dsn) {
@@ -37,6 +40,7 @@ export async function createReporter({ logger, dsn, release, environment }) {
     exception(err, { level = 'error', msg, tags, extra } = {}) {
       logger[level]({ err, tags, ...extra }, msg ?? err?.message ?? 'Unknown error');
       sentry?.captureException(err, { level: level === 'warn' ? 'warning' : level, tags, extra });
+      sendSoon();
     },
 
     /** Error reported by a visitor's browser via POST /api/reports. */
@@ -52,6 +56,7 @@ export async function createReporter({ logger, dsn, release, environment }) {
         request: { url: report.url, headers: { 'User-Agent': report.userAgent } },
         extra: { stack: report.stack, context: report.context, requestId },
       });
+      sendSoon();
     },
 
     /** Content-Security-Policy violation reported by a browser. */
@@ -64,6 +69,7 @@ export async function createReporter({ logger, dsn, release, environment }) {
         tags: { source: 'csp' },
         extra: { violation, requestId },
       });
+      sendSoon();
     },
 
     async flush(timeoutMs = 2000) {
