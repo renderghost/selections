@@ -1,6 +1,6 @@
 # SoundSelections
 
-A fast, responsive browser for Beere's curated playlists on [TIDAL](https://tidal.com): weekly selections for every genre and mood, plus deep dives into artists' back catalogues.
+A fast, responsive browser for Barry Prendergast's curated playlists on [TIDAL](https://tidal.com): weekly selections for every genre and mood, plus deep dives into artists' back catalogues.
 
 - Browse every public playlist, artwork first, on any screen size.
 - Search titles, artist/genre tags and descriptions as you type (accents ignored: "bjork" finds "Björk").
