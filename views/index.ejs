@@ -67,14 +67,27 @@
 					<%- icon('search') %>
 					<input id="search" class="search-input" type="search" name="q" placeholder="Find your favourite style…" autocomplete="off" spellcheck="false" enterkeyhint="search">
 				</div>
-				<label class="sort">
-					<span class="sort-label">Sort</span>
-					<select id="sort" class="select" name="sort">
-						<option value="newest">Newest</option>
-						<option value="updated">Updated</option>
-						<option value="az">A–Z</option>
-					</select>
-				</label>
+				<div id="sort" class="sort">
+					<span class="sort-label" aria-hidden="true">Sort</span>
+					<button id="sort-button" class="sort-button" type="button" aria-expanded="false" aria-controls="sort-menu" aria-label="Sort: Created, Newest first" data-order="desc">
+						<%- icon('arrow-down-wide-narrow', { size: 18, className: 'sort-glyph sort-glyph-desc' }) %><%- icon('arrow-up-narrow-wide', { size: 18, className: 'sort-glyph sort-glyph-asc' }) %>
+						<span class="sort-current">Created</span>
+						<%- icon('chevron-down', { size: 18, className: 'sort-chevron' }) %>
+					</button>
+					<div id="sort-menu" class="sort-menu" hidden>
+						<fieldset class="sort-group">
+							<legend class="visually-hidden">Sort by</legend>
+							<label class="sort-option"><input type="radio" name="sort" value="created" checked><span>Created</span></label>
+							<label class="sort-option"><input type="radio" name="sort" value="updated"><span>Updated</span></label>
+							<label class="sort-option"><input type="radio" name="sort" value="title"><span>Title</span></label>
+						</fieldset>
+						<fieldset class="sort-group sort-orders">
+							<legend class="visually-hidden">Order</legend>
+							<label class="sort-option"><input type="radio" name="order" value="desc" checked><span>Newest first</span></label>
+							<label class="sort-option"><input type="radio" name="order" value="asc"><span>Oldest first</span></label>
+						</fieldset>
+					</div>
+				</div>
 			</form>
 		</search>
 	</div>
@@ -123,8 +136,8 @@
 				<span class="badge" hidden>New</span>
 			</div>
 			<h2 class="card-title"><a class="card-link" href=""></a></h2>
-			<p class="card-meta"><button class="tag-chip" type="button" hidden></button><span class="card-stats"></span></p>
-			<p class="card-description"></p>
+			<div class="card-tags"></div>
+			<p class="card-stats"></p>
 		</li>
 	</template>
 
@@ -132,24 +145,26 @@
 		<div class="sheet-layout">
 			<button class="sheet-close" type="button" aria-label="Close"><%- icon('x', { size: 22 }) %></button>
 
-			<div class="sheet-art"><img alt="" width="640" height="640" decoding="async"></div>
+			<div class="sheet-info">
+				<div class="sheet-art"><img alt="" width="640" height="640" decoding="async"></div>
 
-			<div class="sheet-head">
-				<p class="sheet-tag"></p>
-				<h2 id="sheet-title" class="sheet-title"></h2>
-				<p class="sheet-stats"></p>
-			</div>
-
-			<p class="sheet-description"></p>
-
-			<div class="sheet-body">
-				<div class="sheet-actions">
-					<a class="button button-primary" data-action="open" href="" target="_blank" rel="noopener">
-						Open in TIDAL<span class="visually-hidden"> (opens in a new tab)</span><%- icon('external-link', { size: 18 }) %>
-					</a>
-					<button class="button" data-action="copy" type="button"><%- icon('copy', { size: 18, className: 'when-idle' }) %><%- icon('check', { size: 18, className: 'when-copied' }) %><span class="button-label">Copy link</span></button>
+				<div class="sheet-head">
+					<p class="sheet-tag"></p>
+					<h2 id="sheet-title" class="sheet-title"></h2>
+					<p class="sheet-stats"></p>
 				</div>
-				<p class="copy-status" role="status" aria-live="polite"></p>
+
+				<div class="sheet-body">
+					<div class="sheet-actions">
+						<a class="button button-primary" data-action="open" href="" target="_blank" rel="noopener">
+							Open in TIDAL<span class="visually-hidden"> (opens in a new tab)</span><%- icon('external-link', { size: 18 }) %>
+						</a>
+						<button class="button" data-action="copy" type="button"><%- icon('copy', { size: 18, className: 'when-idle' }) %><%- icon('check', { size: 18, className: 'when-copied' }) %><span class="button-label">Copy link</span></button>
+					</div>
+					<p class="copy-status" role="status" aria-live="polite"></p>
+				</div>
+
+				<p class="sheet-description"></p>
 			</div>
 
 			<div class="sheet-player" data-state="idle">

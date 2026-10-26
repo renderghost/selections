@@ -1,10 +1,11 @@
 import './error-handlers.js';
 import { ApiError } from './api.js';
 import { createPlaylistDialog } from './dialog.js';
-import { DEFAULT_SORT, applyView, isSort, popularTags, searchText, tagKey } from './filter.js';
+import { DEFAULT_SORT, SORTS, applyView, parseOrder, parseSort, popularTags, searchText, tagKey } from './filter.js';
 import { formatDate } from './format.js';
 import { createGrid } from './grid.js';
 import { reportError } from './report.js';
+import { createSortMenu } from './sort-menu.js';
 import { loadCache, saveCache } from './store.js';
 import { syncPlaylists } from './sync.js';
 import { showToast } from './toast.js';
@@ -17,7 +18,6 @@ const els = {
   main: $('playlists'),
   form: $('filters'),
   search: $('search'),
-  sort: $('sort'),
   count: $('result-count'),
   announcer: $('announcer'),
   clear: $('clear-filters'),
@@ -43,12 +43,12 @@ const state = {
 const plural = (n, word) => `${n.toLocaleString('en-GB')} ${word}${n === 1 ? '' : 's'}`;
 
 // --- URL state ---------------------------------------------------------------------
-// ?q= search, ?tag= artist/genre, ?sort=, ?p= open playlist. Shareable and bookmarkable.
+// ?q= search, ?tag= artist/genre, ?sort= and ?order=, ?p= open playlist. Shareable and bookmarkable.
 
 function readViewFromUrl() {
   const params = new URL(location.href).searchParams;
-  const sort = params.get('sort');
-  return { query: params.get('q') ?? '', tag: params.get('tag') ?? '', sort: isSort(sort) ? sort : DEFAULT_SORT };
+  const sort = parseSort(params.get('sort'));
+  return { query: params.get('q') ?? '', tag: params.get('tag') ?? '', sort, order: parseOrder(params.get('order'), sort) };
 }
 
 let urlTimer;
@@ -60,6 +60,7 @@ function flushViewToUrl() {
   set('q', state.view.query.trim());
   set('tag', state.view.tag);
   set('sort', state.view.sort === DEFAULT_SORT ? '' : state.view.sort);
+  set('order', state.view.order === SORTS[state.view.sort].natural ? '' : state.view.order);
   if (url.href !== location.href) history.replaceState(history.state, '', url);
 }
 
@@ -82,6 +83,8 @@ const grid = createGrid({
 });
 
 const sheet = createPlaylistDialog({ dialog: $('playlist-dialog'), onClose: handleDialogClosed });
+
+const sortMenu = createSortMenu({ root: $('sort'), onChange: ({ sort, order }) => setView({ sort, order }) });
 
 function makeTagChip({ label, count, key }) {
   const chip = document.createElement('button');
@@ -162,7 +165,7 @@ function setView(changes) {
 
 function syncControls() {
   if (els.search.value !== state.view.query) els.search.value = state.view.query;
-  els.sort.value = state.view.sort;
+  sortMenu.sync(state.view);
 }
 
 /** "Latest added 23 Oct 2026" in the masthead, from the newest playlist. */
@@ -316,7 +319,6 @@ async function refresh({ boot } = {}) {
 // --- Controls --------------------------------------------------------------------------------
 
 els.search.addEventListener('input', () => setView({ query: els.search.value }));
-els.sort.addEventListener('change', () => setView({ sort: els.sort.value }));
 els.form.addEventListener('submit', (event) => {
   event.preventDefault();
   els.search.blur(); // Closes the on-screen keyboard on phones.

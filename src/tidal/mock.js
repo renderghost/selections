@@ -13,8 +13,10 @@ const uuid = (i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`;
 function buildPlaylists(count, now) {
   return Array.from({ length: count }, (_, i) => {
     const single = i % 3 === 0;
-    const tag = single ? pick(ARTISTS, i) : pick(GENRES, i * 7);
-    const name = `${pick(WORDS, i * 5)} ${pick(WORDS, i * 11 + 3)} (${tag})`;
+    // Mixes sometimes carry a second genre, and one title is long enough to be truncated.
+    const tags = single ? [pick(ARTISTS, i)] : [pick(GENRES, i * 7), ...(i % 4 === 1 ? [pick(GENRES, i * 3 + 1)] : [])];
+    const title = i === 7 ? 'A Very Long Playlist Title That Keeps Going and Going' : `${pick(WORDS, i * 5)} ${pick(WORDS, i * 11 + 3)}`;
+    const name = `${title} ${tags.map((tag) => `(${tag})`).join(' ')}`;
     const tracks = 12 + ((i * 37) % 80);
     return {
       id: uuid(i + 1),
@@ -22,8 +24,8 @@ function buildPlaylists(count, now) {
       attributes: {
         name: i === 4 ? 'Untitled mix without a tag' : name,
         description: single
-          ? `A deep dive through the back catalogue of ${tag}, from the hits to the B-sides.`
-          : `Weekly selection of ${tag} — new finds &amp; old favourites, sequenced for start-to-finish listening.`,
+          ? `A deep dive through the back catalogue of ${tags[0]}, from the hits to the B-sides.`
+          : `Weekly selection of ${tags.join(' and ')} — new finds &amp; old favourites, sequenced for start-to-finish listening.`,
         accessType: i % 25 === 24 ? 'PRIVATE' : 'PUBLIC',
         bounded: true,
         createdAt: new Date(now - (i * 9 + 2) * DAY).toISOString(),

@@ -44,6 +44,17 @@ export function setArtwork(img, art, { sizes, loading = 'lazy', priority = false
   img.src = fallbackSrc(art);
 }
 
+/** A clickable tag; the grid's delegated click handler turns it into a filter. */
+function makeTagChip(tag) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'tag-chip';
+  chip.dataset.tag = tag;
+  chip.textContent = tag;
+  chip.setAttribute('aria-label', `Show all “${tag}” playlists`);
+  return chip;
+}
+
 export function createGrid({ list, template, onOpen, onTag }) {
   const cards = new Map(); // id → { el, rev }
   let order = null; // null until the first render, so the loading skeletons are always replaced
@@ -65,15 +76,10 @@ export function createGrid({ list, template, onOpen, onTag }) {
     const link = el.querySelector('.card-link');
     link.href = `?p=${encodeURIComponent(record.id)}`;
     link.textContent = record.title;
+    link.title = record.title; // The card shows one line, so long titles are cut short.
 
-    const tag = el.querySelector('.tag-chip');
-    tag.hidden = !record.tag;
-    tag.textContent = record.tag ?? '';
-    tag.dataset.tag = record.tag ?? '';
-    tag.setAttribute('aria-label', record.tag ? `Show all “${record.tag}” playlists` : '');
-
+    el.querySelector('.card-tags').replaceChildren(...record.tags.map(makeTagChip));
     el.querySelector('.card-stats').textContent = joinStats(formatTracks(record.tracks), formatDuration(record.duration));
-    el.querySelector('.card-description').textContent = record.description ?? '';
     el.querySelector('.badge').hidden = !isNew(record);
   }
 

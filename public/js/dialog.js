@@ -71,6 +71,7 @@ async function writeClipboard(text, container) {
 export function createPlaylistDialog({ dialog, onClose }) {
   const $ = (selector) => dialog.querySelector(selector);
   const ui = {
+    info: $('.sheet-info'),
     img: $('.sheet-art img'),
     tag: $('.sheet-tag'),
     title: $('.sheet-title'),
@@ -122,8 +123,8 @@ export function createPlaylistDialog({ dialog, onClose }) {
     dialog.classList.toggle('no-art', !record.art);
     dialog.style.setProperty('--art', record.art?.color ?? '');
     setArtwork(ui.img, record.art, { sizes: DIALOG_ART_SIZES, loading: 'eager' });
-    ui.tag.textContent = record.tag ?? '';
-    ui.tag.hidden = !record.tag;
+    ui.tag.textContent = record.tags.join(' · ');
+    ui.tag.hidden = !record.tags.length;
     ui.title.textContent = record.title;
     ui.stats.textContent = joinStats(
       formatTracks(record.tracks),
@@ -197,7 +198,9 @@ export function createPlaylistDialog({ dialog, onClose }) {
       current = record;
       fill(record);
       if (!dialog.open) dialog.showModal();
-      dialog.scrollTop = 0;
+      dialog.scrollTop = 0; // The full-screen sheet on phones scrolls as a whole...
+      ui.info.scrollTop = 0; // ...while on larger screens the details scroll beside the player.
+      ui.description.scrollTop = 0;
       loadPlayer(record);
     },
     close,

@@ -1,7 +1,7 @@
 // The browser's copy of the playlists, kept in localStorage so repeat visits
 // render instantly and only download what changed. ~100 KB for 150 playlists.
 
-import { CACHE_ETAG_KEY, CACHE_KEY } from './constants.js';
+import { CACHE_ETAG_KEY, CACHE_KEY, LEGACY_CACHE_KEYS } from './constants.js';
 import { reportError } from './report.js';
 
 export const isRecord = (record) =>
@@ -29,6 +29,7 @@ export function loadCache() {
   const store = storage();
   if (!store) return null;
   try {
+    for (const key of LEGACY_CACHE_KEYS) store.removeItem(key);
     const raw = store.getItem(CACHE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);

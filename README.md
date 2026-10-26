@@ -4,9 +4,10 @@ A fast, responsive browser for Barry Prendergast's curated playlists on [TIDAL](
 
 - Browse every public playlist, artwork first, on any screen size.
 - Search titles, artist/genre tags and descriptions as you type (accents ignored: "bjork" finds "Björk").
-- Filter by artist or genre, taken from the playlist title — "Night drive (rock)" is tagged *rock*.
+- Filter by artist or genre, taken from the playlist title — "Night drive (rock)" is tagged *rock*. Every trailing bracket is its own tag, so "Night drive (rock) (jazz)" is tagged both.
+- Sort by when a playlist was created, when it was last updated, or by title, in either direction.
 - Open a playlist to play it in TIDAL's embedded player, open it in TIDAL, or copy its link.
-- Every view has its own URL (`?q=`, `?tag=`, `?sort=`, `?p=<playlist>`), so it can be shared, bookmarked, and the Back button closes an open playlist.
+- Every view has its own URL (`?q=`, `?tag=`, `?sort=created|updated|title`, `?order=asc|desc`, `?p=<playlist>`), so it can be shared, bookmarked, and the Back button closes an open playlist.
 
 ## Quick start
 
