@@ -5,19 +5,24 @@ import { artworkResource, playlistResource } from './helpers.js';
 
 describe('parseTitle', () => {
   const cases = [
-    ['the name of the playlist (rock)', 'the name of the playlist', 'rock'],
-    ['Deep cuts (Talking Heads)', 'Deep cuts', 'Talking Heads'],
-    ['Songs (for) rainy days (jazz)', 'Songs (for) rainy days', 'jazz'],
-    ['Spaced out ( ambient )', 'Spaced out', 'ambient'],
-    ['  Extra   spaces   (soul)  ', 'Extra spaces', 'soul'],
-    ['Thunderstruck (AC/DC)', 'Thunderstruck', 'AC/DC'],
-    ['No tag here', 'No tag here', null],
-    ['Empty tag ()', 'Empty tag ()', null],
-    ['(only a tag)', '(only a tag)', null],
-    ['', '', null],
+    ['the name of the playlist (rock)', 'the name of the playlist', ['rock']],
+    ['Deep cuts (Talking Heads)', 'Deep cuts', ['Talking Heads']],
+    ['Songs (for) rainy days (jazz)', 'Songs (for) rainy days', ['jazz']],
+    ['Spaced out ( ambient )', 'Spaced out', ['ambient']],
+    ['  Extra   spaces   (soul)  ', 'Extra spaces', ['soul']],
+    ['Thunderstruck (AC/DC)', 'Thunderstruck', ['AC/DC']],
+    ['Two tags (rock) (jazz)', 'Two tags', ['rock', 'jazz']],
+    ['Touching tags (rock)(jazz)', 'Touching tags', ['rock', 'jazz']],
+    ['Three (a) (b) (c)', 'Three', ['a', 'b', 'c']],
+    ['Brackets (mid) title (rock) (jazz)', 'Brackets (mid) title', ['rock', 'jazz']],
+    ['Stops at an empty pair (rock) ()', 'Stops at an empty pair (rock) ()', []],
+    ['No tag here', 'No tag here', []],
+    ['Empty tag ()', 'Empty tag ()', []],
+    ['(only a tag)', '(only a tag)', []],
+    ['', '', []],
   ];
-  for (const [name, title, tag] of cases) {
-    it(`"${name}"`, () => assert.deepEqual(parseTitle(name), { title, tag }));
+  for (const [name, title, tags] of cases) {
+    it(`"${name}"`, () => assert.deepEqual(parseTitle(name), { title, tags }));
   }
 });
 
@@ -71,7 +76,7 @@ describe('normalisePlaylist', () => {
   it('builds a compact record', () => {
     const record = normalisePlaylist(playlistResource('1'), artworks);
     assert.equal(record.title, 'Playlist 1');
-    assert.equal(record.tag, 'rock');
+    assert.deepEqual(record.tags, ['rock']);
     assert.equal(record.tracks, 10);
     assert.equal(record.duration, 3723);
     assert.equal(record.followers, 3);

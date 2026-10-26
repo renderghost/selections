@@ -400,6 +400,7 @@ main:focus {
 }
 
 .sort {
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: 0.625rem;
@@ -407,118 +408,159 @@ main:focus {
 	font-size: 0.875rem;
 }
 
-/* A dropdown that matches the chips: 10% grey, 16% on hover, a chevron. */
-.select {
-	--chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+/* The button that opens the menu: 10% grey, 16% on hover and while open, like the chips. */
+.sort-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
 	min-height: var(--tap);
-	padding: 0.5rem 2.5rem 0.5rem 1rem;
-	background: var(--grey-10) var(--chevron) no-repeat right 0.75rem center / 1.125rem;
+	padding: 0.5rem 0.875rem 0.5rem 1rem;
+	background: var(--grey-10);
 	border: 1px solid transparent;
 	border-radius: var(--radius-m);
 	color: var(--text);
 	font-size: 0.9375rem;
 	font-weight: 500;
+	white-space: nowrap;
 	cursor: pointer;
-	appearance: none;
 	transition: background-color var(--fast) ease-out;
 }
 
-.select:hover {
-	background-color: var(--grey-16);
+.sort-button:hover,
+.sort-button[aria-expanded='true'] {
+	background: var(--grey-16);
 }
 
-/* Chrome and Safari can also style the open list (customisable select). */
-@supports (appearance: base-select) {
-	.select,
-	.select::picker(select) {
-		appearance: base-select;
-	}
+.sort-glyph,
+.sort-chevron {
+	color: var(--text-2);
+}
 
-	.select {
-		background-image: none;
-		display: inline-flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		padding-right: 0.875rem;
-	}
+/* The arrow shows which way round the list currently runs. */
+.sort-button[data-order='asc'] .sort-glyph-desc,
+.sort-button:not([data-order='asc']) .sort-glyph-asc {
+	display: none;
+}
 
-	/* Lucide chevron in place of the browser's default triangle. */
-	.select::picker-icon {
-		content: '';
-		width: 1.125rem;
-		height: 1.125rem;
-		background: var(--text-2);
-		-webkit-mask: var(--chevron) center / contain no-repeat;
-		mask: var(--chevron) center / contain no-repeat;
-		transition: rotate var(--base) var(--ease-out);
-	}
+.sort-chevron {
+	transition: rotate var(--base) var(--ease-out);
+}
 
-	.select:open::picker-icon {
-		rotate: 180deg;
-	}
+.sort-button[aria-expanded='true'] .sort-chevron {
+	rotate: 180deg;
+}
 
-	.select::picker(select) {
-		margin-top: 0.375rem;
-		padding: 0.375rem;
+/* The menu: frosted glass, with what to sort by above a line and which way round below it. */
+.sort-menu {
+	--tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+	position: absolute;
+	top: calc(100% + 0.375rem);
+	right: 0;
+	z-index: 1;
+	min-width: 14.5rem;
+	padding: 0.375rem;
+	background: hsl(0 0% 11% / 0.96);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-m);
+	box-shadow: 0 24px 48px -12px hsl(0 0% 0% / 0.8);
+	transition: opacity var(--fast) ease-out, translate var(--base) var(--ease-out);
+
+	@starting-style {
+		opacity: 0;
+		translate: 0 -0.25rem;
+	}
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+	.sort-menu {
 		background: hsl(0 0% 11% / 0.9);
 		-webkit-backdrop-filter: var(--glass-blur);
 		backdrop-filter: var(--glass-blur);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-m);
-		box-shadow: 0 24px 48px -12px hsl(0 0% 0% / 0.8);
-	}
-
-	.select option {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		min-height: 2.5rem;
-		padding: 0.5rem 0.75rem;
-		border-radius: calc(var(--radius-m) - 0.25rem);
-		font-weight: 500;
-		cursor: pointer;
-	}
-
-	.select option:hover,
-	.select option:focus-visible {
-		background: var(--grey-16);
-		outline: none;
-	}
-
-	.select option:checked {
-		background: var(--cyan-wash);
-	}
-
-	.select option::checkmark {
-		color: var(--cyan);
 	}
 }
 
+.sort-group {
+	min-inline-size: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.sort-group + .sort-group {
+	margin-top: 0.375rem;
+	padding-top: 0.375rem;
+	border-top: 1px solid var(--line);
+}
+
+.sort-option {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: 2.5rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: calc(var(--radius-m) - 0.25rem);
+	color: var(--text);
+	font-size: 0.9375rem;
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+/* A cyan tick marks the choice in force; the radio itself is invisible but covers the row. */
+.sort-option::before {
+	content: '';
+	flex: none;
+	width: 1.125rem;
+	height: 1.125rem;
+	background: var(--cyan);
+	-webkit-mask: var(--tick) center / contain no-repeat;
+	mask: var(--tick) center / contain no-repeat;
+	opacity: 0;
+}
+
+.sort-option input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+	appearance: none;
+}
+
+.sort-option:hover {
+	background: var(--grey-16);
+}
+
+.sort-option:has(:checked) {
+	background: var(--cyan-wash);
+}
+
+.sort-option:has(:checked)::before {
+	opacity: 1;
+}
+
+.sort-option:has(:focus-visible) {
+	outline: 2px solid var(--cyan);
+	outline-offset: -2px;
+}
+
 @media (max-width: 30rem) {
-	/* Keep the search field wide enough for its placeholder. */
+	/* Keep the search field wide enough for its placeholder: the arrow stays, the chevron goes. */
 	.filters {
 		gap: 0.5rem;
 	}
 
-	.select {
-		padding-left: 0.625rem;
-		padding-right: 1.75rem;
+	.sort-button {
+		gap: 0.375rem;
+		padding-inline: 0.625rem;
 		font-size: 0.875rem;
-		background-position: right 0.5rem center;
-		background-size: 1rem;
 	}
 
-	@supports (appearance: base-select) {
-		.select {
-			padding-right: 0.5rem;
-			gap: 0.25rem;
-		}
-
-		.select::picker-icon {
-			width: 1rem;
-			height: 1rem;
-		}
+	.sort-chevron {
+		display: none;
 	}
 
 	.search-field .icon {
@@ -650,18 +692,19 @@ main:focus {
 	}
 }
 
+/* Every card has the same four rows, top to bottom: artwork, title, tags, stats. */
 .card {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 0.25rem;
+	gap: 0.375rem;
 	min-width: 0;
 }
 
 .card-art {
 	position: relative;
 	aspect-ratio: 1;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
 	overflow: hidden;
 	border-radius: var(--radius-s);
 	background: var(--art, var(--grey-10));
@@ -723,16 +766,14 @@ main:focus {
 	text-transform: uppercase;
 }
 
+/* One line, so titles line up across a row; the full title is in the link's tooltip. */
 .card-title {
+	overflow: hidden;
 	font-size: 1rem;
 	font-weight: 600;
 	line-height: 1.3;
-	overflow-wrap: anywhere;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
-	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .card-link {
@@ -740,7 +781,7 @@ main:focus {
 	text-decoration: none;
 }
 
-/* The whole card is clickable; the tag chip sits above this overlay. */
+/* The whole card is clickable; the tag chips sit above this overlay. */
 .card-link::after {
 	content: '';
 	position: absolute;
@@ -757,52 +798,35 @@ main:focus {
 	outline-offset: 2px;
 }
 
-.card-meta {
+/* One chip per tag. The row keeps its height when there are none, so the rows below stay level. */
+.card-tags {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.375rem 0.625rem;
-	color: var(--text-2);
+	align-content: flex-start;
+	gap: 0.375rem;
+	min-height: 1.625rem;
 }
 
-.card-meta .tag-chip {
+/* Block rather than inline-flex, so a tag too long for the card ends in an ellipsis. */
+.card-tags .tag-chip {
 	position: relative;
 	z-index: 1;
+	display: block;
 	min-height: 1.625rem;
 	max-width: 100%;
 	padding: 0 0.625rem;
 	overflow: hidden;
-	text-overflow: ellipsis;
 	font-size: 0.75rem;
+	line-height: 1.5rem;
+	text-overflow: ellipsis;
 }
 
+/* Pinned to the bottom, so stats line up even when a neighbour's tags wrap onto a second line. */
 .card-stats {
-	font-size: 0.6875rem;
-	font-weight: 500;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-}
-
-.card-description {
+	margin-top: auto;
 	color: var(--text-2);
 	font-size: 0.8125rem;
-	line-height: 1.45;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
-	overflow: hidden;
-}
-
-.card-description:empty {
-	display: none;
-}
-
-/* Only the two-column phone layout (400-480px) is too tight for descriptions. */
-@media (min-width: 25rem) and (max-width: 30rem) {
-	.card-description {
-		display: none;
-	}
+	font-variant-numeric: tabular-nums;
 }
 
 /* Loading skeleton ----------------------------------------------------------- */
@@ -886,9 +910,12 @@ main:focus {
 .sheet {
 	width: min(100% - 2rem, 66rem);
 	max-width: none;
-	max-height: min(100% - 2rem, 50rem);
+	/* A set height, so the player always fits inside the padding whatever the playlist; the
+	   details beside it scroll when they need to. */
+	height: min(100% - 2rem, 50rem);
+	max-height: none;
 	padding: 0;
-	overflow: auto;
+	overflow: hidden;
 	overscroll-behavior: contain;
 	background:
 		radial-gradient(110% 70% at 0% 0%, color-mix(in srgb, var(--art, var(--cyan)) 30%, transparent), transparent 65%),
@@ -918,16 +945,24 @@ main:focus {
 .sheet-layout {
 	position: relative;
 	display: grid;
+	height: 100%;
 	grid-template-columns: minmax(0, 19rem) minmax(0, 1fr);
-	grid-template-rows: auto auto auto 1fr;
-	grid-template-areas:
-		'art player'
-		'head player'
-		'desc player'
-		'body player';
-	gap: 1rem 2rem;
+	grid-template-rows: minmax(0, 1fr);
+	grid-template-areas: 'info player';
+	gap: 2rem;
 	/* The top padding leaves room for the close button, clear of TIDAL's player. */
 	padding: 3.5rem 2rem 2rem;
+}
+
+/* Artwork, details and actions: one column that scrolls beside the player if it is too tall. */
+.sheet-info {
+	grid-area: info;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
 .sheet-close {
@@ -952,7 +987,7 @@ main:focus {
 }
 
 .sheet-art {
-	grid-area: art;
+	flex: none;
 	position: relative;
 	aspect-ratio: 1;
 	overflow: hidden;
@@ -962,7 +997,7 @@ main:focus {
 }
 
 .sheet-head {
-	grid-area: head;
+	flex: none;
 	display: grid;
 	gap: 0.25rem;
 }
@@ -990,14 +1025,13 @@ main:focus {
 }
 
 .sheet-body {
-	grid-area: body;
+	flex: none;
 	display: grid;
 	align-content: start;
 	gap: 1rem;
 }
 
 .sheet-description {
-	grid-area: desc;
 	color: var(--text-2);
 	white-space: pre-line;
 	text-wrap: pretty;
@@ -1026,7 +1060,7 @@ main:focus {
 .sheet-player {
 	grid-area: player;
 	position: relative;
-	min-height: 30rem;
+	min-height: 0;
 	overflow: hidden;
 	border-radius: var(--radius-m);
 	background: var(--grey-10);
@@ -1084,12 +1118,15 @@ main:focus {
 		max-height: 100%;
 		height: 100%;
 		margin: 0;
+		overflow: auto;
 		border: 0;
 		border-radius: 0;
 	}
 
-	/* Actions before the player: on a phone, "Open in TIDAL" is the main event. */
+	/* Actions before the player: on a phone, "Open in TIDAL" is the main event. The sheet scrolls
+	   as a whole, so the details join the layout's own grid. */
 	.sheet-layout {
+		height: auto;
 		min-height: 100%;
 		grid-template-columns: 5.5rem minmax(0, 1fr);
 		grid-template-rows: auto auto auto auto;
@@ -1098,16 +1135,34 @@ main:focus {
 			'body body'
 			'player player'
 			'desc desc';
+		gap: 1rem;
 		align-items: center;
 		padding: 1rem var(--gutter) max(1.5rem, env(safe-area-inset-bottom));
 	}
 
+	.sheet-info {
+		display: contents;
+	}
+
+	.sheet-art {
+		grid-area: art;
+	}
+
 	.sheet-head {
+		grid-area: head;
 		padding-right: 3rem;
 	}
 
+	.sheet-body {
+		grid-area: body;
+	}
+
+	.sheet-description {
+		grid-area: desc;
+	}
+
 	.sheet-player {
-		min-height: 0;
+		grid-area: player;
 		height: min(62dvh, 32rem);
 	}
 }

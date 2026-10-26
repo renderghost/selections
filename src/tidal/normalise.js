@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
-// Trailing "(…)" holds the artist (single-artist playlists) or genre (mixes).
-const TITLE_WITH_TAG = /^(.*\S)\s*\(\s*([^()]*?)\s*\)\s*$/;
+// Each trailing "(…)" holds a tag: the artist (single-artist playlists) or genre (mixes).
+const TRAILING_TAG = /^(.*\S)\s*\(\s*([^()]*?)\s*\)\s*$/;
 const ISO_DURATION = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/;
 const HEX_COLOUR = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i;
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'", nbsp: ' ' };
@@ -9,11 +9,15 @@ const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'",
 const MIN_ART_WIDTH = 100;
 const MAX_ART_WIDTH = 1280;
 
+/** "Night drive (rock) (jazz)" → { title: "Night drive", tags: ["rock", "jazz"] }. Brackets mid-title stay in the title. */
 export function parseTitle(name) {
-  const clean = String(name ?? '').replace(/\s+/g, ' ').trim();
-  const match = clean.match(TITLE_WITH_TAG);
-  if (!match || !match[2]) return { title: clean, tag: null };
-  return { title: match[1], tag: match[2] };
+  let title = String(name ?? '').replace(/\s+/g, ' ').trim();
+  const tags = [];
+  for (let match = title.match(TRAILING_TAG); match?.[2]; match = title.match(TRAILING_TAG)) {
+    tags.unshift(match[2]);
+    title = match[1];
+  }
+  return { title, tags };
 }
 
 /** "PT1H2M3S" → 3723 (seconds), or null when missing/invalid. */
@@ -87,7 +91,7 @@ export function normalisePlaylist(resource, artworksById = new Map()) {
   if (typeof resource?.id !== 'string' || !attributes) return null;
   if (attributes.accessType !== 'PUBLIC') return null;
 
-  const { title, tag } = parseTitle(attributes.name);
+  const { title, tags } = parseTitle(attributes.name);
   if (!title) return null;
 
   const share = attributes.externalLinks?.find((link) => link?.meta?.type === 'TIDAL_SHARING')?.href;
@@ -97,7 +101,7 @@ export function normalisePlaylist(resource, artworksById = new Map()) {
   const record = {
     id: resource.id,
     title,
-    tag,
+    tags,
     description: cleanText(attributes.description),
     tracks: count(attributes.numberOfTrackItems) ?? count(attributes.numberOfItems),
     duration: parseDuration(attributes.duration),

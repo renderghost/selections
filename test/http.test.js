@@ -11,8 +11,8 @@ import { fakeReporter } from './helpers.js';
 const silentLogger = createLogger({ level: 'silent' });
 
 const records = [
-  { id: 'aaaa-1', rev: 'r1', title: 'One', tag: 'rock', art: { color: '#112233', sources: [['https://resources.tidal.com/images/1/320x320.jpg', 320]] } },
-  { id: 'bbbb-2', rev: 'r2', title: 'Two', tag: null, art: null },
+  { id: 'aaaa-1', rev: 'r1', title: 'One', tags: ['rock'], art: { color: '#112233', sources: [['https://resources.tidal.com/images/1/320x320.jpg', 320]] } },
+  { id: 'bbbb-2', rev: 'r2', title: 'Two', tags: [], art: null },
 ];
 const snapshot = {
   records,

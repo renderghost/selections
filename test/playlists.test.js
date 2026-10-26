@@ -89,7 +89,8 @@ describe('fetchPublicPlaylists', () => {
     const client = createTidalClient({ baseUrl: 'https://openapi.tidal.com/v2', tokens, fetch, logger: silentLogger });
     const records = await fetchPublicPlaylists({ client, ...options });
     assert.equal(records.length, 29); // One of the 30 mock playlists is private.
-    assert.ok(records.some((r) => r.tag === 'Björk'));
-    assert.ok(records.some((r) => r.tag === null));
+    assert.ok(records.some((r) => r.tags.includes('Björk')));
+    assert.ok(records.some((r) => r.tags.length === 0));
+    assert.ok(records.some((r) => r.tags.length === 2));
   });
 });

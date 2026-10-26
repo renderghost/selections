@@ -1,18 +1,18 @@
 // The browser modules' pure logic, run in Node.
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import { DEFAULT_SORT, applyView, fold, popularTags, searchText } from '../public/js/filter.js';
+import { DEFAULT_SORT, applyView, fold, parseOrder, parseSort, popularTags, searchText } from '../public/js/filter.js';
 import { formatDuration, formatFollowers, formatTracks, isNew, joinStats } from '../public/js/format.js';
 import { diffManifest, mergePlaylists, syncPlaylists } from '../public/js/sync.js';
 import { jsonResponse } from './helpers.js';
 
-const record = (id, extra = {}) => ({ id, rev: `${id}-1`, title: `Title ${id}`, tag: null, description: '', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z', ...extra });
+const record = (id, extra = {}) => ({ id, rev: `${id}-1`, title: `Title ${id}`, tags: [], description: '', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z', ...extra });
 
 describe('search and filters', () => {
   const records = [
-    record('a', { title: 'Night Bloom', tag: 'Björk', description: 'Icelandic deep dive', createdAt: '2024-03-01T00:00:00Z' }),
-    record('b', { title: 'Static Drive', tag: 'rock', description: 'Guitars & motorways', createdAt: '2024-05-01T00:00:00Z', updatedAt: '2024-01-02T00:00:00Z' }),
-    record('c', { title: 'after Dark', tag: 'Rock', description: 'Late night rock', createdAt: '2024-04-01T00:00:00Z', updatedAt: '2024-09-01T00:00:00Z' }),
+    record('a', { title: 'Night Bloom', tags: ['Björk'], description: 'Icelandic deep dive', createdAt: '2024-03-01T00:00:00Z' }),
+    record('b', { title: 'Static Drive', tags: ['rock'], description: 'Guitars & motorways', createdAt: '2024-05-01T00:00:00Z', updatedAt: '2024-01-02T00:00:00Z' }),
+    record('c', { title: 'after Dark', tags: ['Rock', 'Jazz'], description: 'Late night rock', createdAt: '2024-04-01T00:00:00Z', updatedAt: '2024-09-01T00:00:00Z' }),
   ];
   const entries = records.map((r) => ({ record: r, text: searchText(r) }));
   const ids = (view) => applyView(entries, view).map((r) => r.id);
@@ -26,24 +26,74 @@ describe('search and filters', () => {
     assert.deepEqual(ids({ query: 'motorways' }), ['b']);
     assert.deepEqual(ids({ query: 'night' }).sort(), ['a', 'c']);
     assert.deepEqual(ids({ query: 'night rock' }), ['c']);
+    assert.deepEqual(ids({ query: 'jazz' }), ['c']);
     assert.deepEqual(ids({ query: '  ' }).length, 3);
   });
 
-  it('filters by tag, case-insensitively', () => {
+  it('filters by tag, case-insensitively, whichever of a playlist\'s tags it is', () => {
     assert.deepEqual(ids({ tag: 'ROCK' }), ['b', 'c']);
+    assert.deepEqual(ids({ tag: 'jazz' }), ['c']);
   });
 
-  it('sorts newest first by default, or by update, or A–Z', () => {
-    assert.equal(DEFAULT_SORT, 'newest');
-    assert.deepEqual(ids({}), ['b', 'c', 'a']);
-    assert.deepEqual(ids({ sort: 'updated' }), ['c', 'b', 'a']);
-    assert.deepEqual(ids({ sort: 'az' }), ['c', 'a', 'b']);
-    assert.deepEqual(ids({ sort: 'nonsense' }), ['b', 'c', 'a']);
-  });
-
-  it('lists tags shared by several playlists, most common first', () => {
+  it('lists tags shared by several playlists, most common first, counting each playlist once', () => {
     assert.deepEqual(popularTags(records), [{ key: 'rock', label: 'rock', count: 2 }]);
-    assert.equal(popularTags(records, { min: 1 }).length, 2);
+    assert.equal(popularTags(records, { min: 1 }).length, 3);
+    assert.deepEqual(popularTags([record('x', { tags: ['Rock', 'rock'] })], { min: 1 }), [{ key: 'rock', label: 'Rock', count: 1 }]);
+  });
+});
+
+describe('sorting', () => {
+  const records = [
+    record('a', { title: 'Night Bloom', createdAt: '2024-03-01T00:00:00Z', updatedAt: '2024-06-01T00:00:00Z' }),
+    record('b', { title: 'Static Drive', createdAt: '2024-05-01T00:00:00Z', updatedAt: '2024-01-02T00:00:00Z' }),
+    record('c', { title: 'after Dark', createdAt: '2024-04-01T00:00:00Z', updatedAt: '2024-09-01T00:00:00Z' }),
+  ];
+  const entries = records.map((r) => ({ record: r, text: searchText(r) }));
+  const ids = (view) => applyView(entries, view).map((r) => r.id);
+
+  it('shows the newest created first by default', () => {
+    assert.equal(DEFAULT_SORT, 'created');
+    assert.deepEqual(ids({}), ['b', 'c', 'a']);
+  });
+
+  it('sorts by created, updated or title, each in the order people expect first', () => {
+    assert.deepEqual(ids({ sort: 'created' }), ['b', 'c', 'a']);
+    assert.deepEqual(ids({ sort: 'updated' }), ['c', 'a', 'b']);
+    assert.deepEqual(ids({ sort: 'title' }), ['c', 'a', 'b']);
+  });
+
+  it('can reverse every sort', () => {
+    assert.deepEqual(ids({ sort: 'created', order: 'asc' }), ['a', 'c', 'b']);
+    assert.deepEqual(ids({ sort: 'updated', order: 'asc' }), ['b', 'a', 'c']);
+    assert.deepEqual(ids({ sort: 'title', order: 'desc' }), ['b', 'a', 'c']);
+    assert.deepEqual(ids({ sort: 'created', order: 'desc' }), ids({ sort: 'created' }));
+  });
+
+  it('breaks ties by title, whichever way the sort runs', () => {
+    const tied = [record('x', { title: 'Zebra' }), record('y', { title: 'Apple' })].map((r) => ({ record: r, text: '' }));
+    assert.deepEqual(applyView(tied, { sort: 'created' }).map((r) => r.id), ['y', 'x']);
+    assert.deepEqual(applyView(tied, { sort: 'created', order: 'asc' }).map((r) => r.id), ['y', 'x']);
+  });
+
+  it('keeps playlists without a date at the end, either way round', () => {
+    const undated = [...entries, { record: record('u', { title: 'Undated', createdAt: null }), text: '' }];
+    assert.equal(applyView(undated, { sort: 'created' }).at(-1).id, 'u');
+    assert.equal(applyView(undated, { sort: 'created', order: 'asc' }).at(-1).id, 'u');
+  });
+
+  it('falls back to the defaults for anything unknown', () => {
+    assert.deepEqual(ids({ sort: 'nonsense' }), ['b', 'c', 'a']);
+    assert.deepEqual(ids({ sort: 'title', order: 'sideways' }), ['c', 'a', 'b']);
+    assert.equal(parseSort('constructor'), 'created');
+    assert.equal(parseOrder('sideways', 'title'), 'asc');
+    assert.equal(parseOrder(undefined, 'updated'), 'desc');
+  });
+
+  it('still understands the names used by links shared before directions existed', () => {
+    assert.equal(parseSort('newest'), 'created');
+    assert.equal(parseSort('az'), 'title');
+    assert.deepEqual(ids({ sort: 'az' }), ids({ sort: 'title' }));
+    assert.deepEqual(ids({ sort: 'newest' }), ids({ sort: 'created' }));
   });
 });
 
